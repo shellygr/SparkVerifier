@@ -1,0 +1,13 @@
+Agg1ByKeySolver.pyc
+FoldResult.pyc
+Globals.pyc
+RDD.pyc
+RDDTools.pyc
+SolverTools.pyc
+SparkContext.pyc
+SparkConverter.pyc
+tools.pyc
+UDFParser.pyc
+Verifier.pyc
+WrapperClass.pyc
+.idea/
