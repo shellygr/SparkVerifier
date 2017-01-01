@@ -1,5 +1,5 @@
 import ast
-from z3 import If, And
+from z3 import If, And, Or
 
 import Globals
 from FoldResult import FoldResult
@@ -74,7 +74,7 @@ class SparkConverter(ast.NodeVisitor):
             result = substituteInFuncDec(Globals.funcs[udf.id], udf_arg, self.solver, self.vars)
 
             # TODO: result may have an arity > 1. This should be noted when reading from env.
-            return result, udf_arg_arity
+            return makeTuple(result), udf_arg_arity
             # solver.add()
 
         if op_name == "filter":
@@ -104,7 +104,7 @@ class SparkConverter(ast.NodeVisitor):
             first_rdd_term, first_term_arity = makeTuple(first_rdd), first_rdd_arity
             other_rdd_term, other_term_arity = self.visit(other_rdd)
             other_rdd_term = makeTuple(other_rdd_term)
-            
+
             # if any of the elements is bot, need to bot the whole resulting term. So need to allocate new vars
             out_vars1 = ()
             for i in range(0, first_term_arity):
@@ -116,12 +116,16 @@ class SparkConverter(ast.NodeVisitor):
                 out_var = BoxedZ3IntVar(gen_name("c'"))
                 out_vars2 += (out_var, )
 
+            # Calculate the condition if there are any bots in the cartesian product
+            isAnyBot = False
             for t in first_rdd_term + other_rdd_term:
-                for (orig_t, out_t) in list(zip(first_rdd_term, out_vars1)) + list(zip(other_rdd_term, out_vars2)):
-                    self.solver.add(If(Bot() == t, out_t == Bot(), out_t == orig_t))
+                isAnyBot = Or(isAnyBot, Bot() == t)
+
+            # Now we set the out_vars properly by adding the condition that if any of the participating elements in the cartesian is bot, then all are bot
+            for (orig_t, out_t) in list(zip(first_rdd_term, out_vars1)) + list(zip(other_rdd_term, out_vars2)):
+                self.solver.add(If(isAnyBot, out_t == Bot(), out_t == orig_t))
 
             result = (out_vars1, out_vars2)
-
             return result, first_term_arity + other_term_arity
 
 
