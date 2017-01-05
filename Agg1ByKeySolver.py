@@ -1,6 +1,6 @@
 
 
-class Agg1ByKeyChecker(RddWalker):
+class Agg1ByKeyChecker():
     def __init__(self):
         self.foldNestingLevel = 0
 

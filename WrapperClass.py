@@ -4,40 +4,41 @@ class BoxedZ3Int:
     def __init__(self, val, isBot, name):
         self.val = val
         self.isBot = isBot
+        self.isUnique = False
         self.name = name
 
     def __add__(self, other):
         other = _to_BoxedZ3Int(other)
-        return BoxedZ3Int(self.val + other.val, Or(self.isBot, other.isBot), self.name)
+        return BoxedZ3Int(self.val + other.val, Or(self.isBot, other.isBot), self.name+"+"+other.name)
 
     def __radd__(self, other):
         return self.__add__(other)
 
     def __sub__(self, other):
         other = _to_BoxedZ3Int(other)
-        return BoxedZ3Int(self.val - other.val, Or(self.isBot, other.isBot), self.name)
+        return BoxedZ3Int(self.val - other.val, Or(self.isBot, other.isBot), self.name+"-"+other.name)
 
     def __mul__(self, other):
         other = _to_BoxedZ3Int(other)
-        return BoxedZ3Int(self.val*other.val, Or(self.isBot, other.isBot), self.name)
+        return BoxedZ3Int(self.val*other.val, Or(self.isBot, other.isBot), self.name+"*"+other.name)
 
     def __rmul__(self, other):
         return self.__mul__(other)
 
     def __mod__(self, other):
         other = _to_BoxedZ3Int(other)
-        return BoxedZ3Int(self.val.__mod__(other.val), Or(self.isBot, other.isBot), self.name)
+        return BoxedZ3Int(self.val.__mod__(other.val), Or(self.isBot, other.isBot), self.name+"%"+other.name)
 
     def __div__(self, other):
         other = _to_BoxedZ3Int(other)
-        return BoxedZ3Int(self.val.__div__(other.val), Or(self.isBot, other.isBot), self.name)
+        return BoxedZ3Int(self.val.__div__(other.val), Or(self.isBot, other.isBot), self.name+"/"+other.name)
 
     def __divmod__(self, other):
         other = _to_BoxedZ3Int(other)
-        return BoxedZ3Int(self.val.__divmod__(other.val), Or(self.isBot, other.isBot), self.name)
+        return BoxedZ3Int(self.val.__divmod__(other.val), Or(self.isBot, other.isBot), self.name + " divmov " + other.name)
 
     def __neg__(self):
-        return BoxedZ3Int(self.val.__neg__(), self.isBot, self.name)
+        return BoxedZ3Int(self.val.__neg__(), self.isBot, "-"+self.name)
 
     def __eq__(self, other):
         if other == None:
@@ -87,16 +88,16 @@ def BoxedZ3IntVar(name):
     return BoxedZ3Int(Int('%s.val' % name), Bool('%s.isBot' % name), name)
 
 def BoxedZ3IntVal(v):
-    return BoxedZ3Int(IntVal(v), BoolVal(False), "")
+    return BoxedZ3Int(IntVal(v), BoolVal(False), str(v))
 
 def Bot():
-    return BoxedZ3Int(IntVal(0), BoolVal(True), "")
+    return BoxedZ3Int(IntVal(0), BoolVal(True), "bot")
 
 def _to_BoxedZ3Int(v):
     if isinstance(v, BoxedZ3Int):
         return v
     elif isinstance(v, ArithRef):
-        return BoxedZ3Int(v, BoolVal(False), "")
+        return BoxedZ3Int(v, BoolVal(False), str(v))
     else:
         return BoxedZ3IntVal(v)
 

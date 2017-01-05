@@ -16,6 +16,7 @@ class Tester:
         self.f2 = f2
         self.args = args
 
+
     def verify(self):
         verifier = Verifier()
         return verifier.verifyEquivalence(self.f1, self.f2, *self.args)

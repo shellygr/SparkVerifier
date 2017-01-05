@@ -1,3 +1,4 @@
+test/*.pyc
 Agg1ByKeySolver.pyc
 FoldResult.pyc
 Globals.pyc
@@ -11,3 +12,4 @@ UDFParser.pyc
 Verifier.pyc
 WrapperClass.pyc
 .idea/
+*.pyc

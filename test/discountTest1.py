@@ -57,19 +57,19 @@ def takeMinimumAfterDiscount(rdd):
 def isMinimumAtLeast100(rdd):
     min1 = rdd.fold(1000, min)
 
-    return apply(atleast100, (min1,))
+    return atleast100(min1)
 
 
 def isMinimumEqual100(rdd):
     min1 = rdd.fold(1000, min)
 
-    return apply(equal100, (min1,))
+    return equal100(min1)
 
 
 def isMinimumAtLeast80(rdd):
     min1 = rdd.fold(1000, min)
 
-    return apply(atleast80, (min1,))
+    return atleast80(min1)
 
 def isMinimumAfterDiscountAtLeast100(rdd):
 
@@ -77,7 +77,7 @@ def isMinimumAfterDiscountAtLeast100(rdd):
 
     min2 = rddAfterDiscount.fold(1000, min)
 
-    return apply(atleast100, (min2,))
+    return atleast100(min2)
 
 def isMinimumAfterDiscountAtLeast80(rdd):
 
@@ -85,7 +85,7 @@ def isMinimumAfterDiscountAtLeast80(rdd):
 
     min2 = rddAfterDiscount.fold(1000, min)
 
-    return apply(atleast80, (min2,))
+    return atleast80(min2)
 
 
 def isMinimumAfterDiscountEqual80(rdd):
@@ -94,7 +94,7 @@ def isMinimumAfterDiscountEqual80(rdd):
 
     min2 = rddAfterDiscount.fold(1000, min)
 
-    return apply(equal80, (min2,))
+    return equal80(min2)
 
 
 def newDiscount(x):

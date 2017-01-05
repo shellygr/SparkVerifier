@@ -1,8 +1,7 @@
 from z3 import Solver, sat, unsat, Not, Int, Or
-from z3util import get_vars
 
 
-class NoAggChecker(RddWalker):
+class NoAggChecker():
     def inputCb(self, rdd):
         return False
 

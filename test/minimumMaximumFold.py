@@ -47,5 +47,5 @@ def takeMaximumWrongInit(rdd):
 def takeMaximumByMinimum(rdd):
     invertedRdd = rdd.map(invert)
     minElem = invertedRdd.fold(100, min)
-    return apply(invert, (minElem,))
+    return invert(minElem)
 

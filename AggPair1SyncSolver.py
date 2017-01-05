@@ -1,7 +1,7 @@
 from z3 import Solver, Int, simplify, Implies, sat, unsat, Not, And, Exists, ForAll, Or, If, set_param
 
 
-class Agg1Checker(RddWalker):
+class Agg1Checker():
     def __init__(self):
         self.foldNestingLevel = 0
 

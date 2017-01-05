@@ -408,7 +408,7 @@ class UDFConverter(ast.NodeVisitor):
         left = _to_BoxedZ3Int(self.visit(node.left))
         right = normalizeTuple(self.visit(node.right))
         debug("Left = %s, right = %s, op = %s", left, right, op)
-        debug("Returning %s", op(left,right))
+        debug("Returning %s(%s,%s) = %s", op, left,right, op(left,right))
         return op(left, right)
 
     def visit_And(self, node):
@@ -434,7 +434,7 @@ class UDFConverter(ast.NodeVisitor):
         return op(self.visit(node.operand))
 
 
-def substituteInFuncDec(f, term, solver, vars):
+def substituteInFuncDec(f, term, solver):
 
     debug("Original code %s", ast.dump(f))
 

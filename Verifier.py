@@ -27,8 +27,6 @@ class Verifier:
 
     def __init__(self):
         self.solver = Solver()
-        self. vars = set()
-
 
     def createProgramEnv(self, f, name, *rdds):
         source = getSource(f)
@@ -36,7 +34,7 @@ class Verifier:
 
         debug("Original code %s", ast.dump(parsedSource))
 
-        converter = SparkConverter(self.solver, self.vars, name, *rdds)
+        converter = SparkConverter(self.solver, name, *rdds)
         converter.visit(parsedSource)
 
         resultingTerm = converter.ret
@@ -53,10 +51,24 @@ class Verifier:
         result1 = self.createProgramEnv(p1, p1.__name__, *rdds)
         result2 = self.createProgramEnv(p2, p2.__name__, *rdds)
 
+        """
+        Check type:
+            If fold level = 0, then it's NoAgg
+            If fold level > 1, return False as we don't know how to handle it.
+        """
+        if result1.ret_fold_level != result2.ret_fold_level:
+            return False
+
+        if result1.ret_fold_level > 1:
+            return False
+
         return self.verify(result1, result2)
 
-
     def verify(self, sc1, sc2):
+
+        print "Comparing ", sc1.ret, sc2.ret
+        print "Fold level: ", sc1.ret_fold_level
+        print "Vars: ", sc1.ret_vars, sc2.ret_vars
 
         if sc1.ret_arity != sc2.ret_arity:
             return False
@@ -64,6 +76,7 @@ class Verifier:
         ret1 = normalizeTuple(sc1.ret)
         ret2 = normalizeTuple(sc2.ret)
 
+        print "Comparing ", ret1, ret2
 
         if isinstance(ret1, tuple) and isinstance(ret2, tuple):
            if len(ret1) != len(ret2):
@@ -71,14 +84,41 @@ class Verifier:
 
            are_equivalent = True
            for e1, e2 in zip(ret1, ret2):
-                are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1), normalizeTuple(e2))
-                if are_equivalent == False:
-                    return False
+               if sc1.ret_fold_level > 0:
+                   are_equivalent = self.verifyEquivalentFolds(normalizeTuple(e1), normalizeTuple(e2))
+               else:
+                    are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1), normalizeTuple(e2))
+
+               if are_equivalent == False:
+                   return False
 
            return True
 
         if not isinstance(ret1, tuple) and not isinstance(ret2, tuple):
-            return self.verifyEquivalentElements(ret1, ret2)
+            if sc1.ret_fold_level > 0:
+                return self.verifyEquivaentFolds(ret1, ret2, sc1, sc2)
+            else:
+                return self.verifyEquivalentElements(ret1, ret2)
+
+
+    def verifyEquivaentFolds(self, e1, e2, programCtx1, programCtx2):
+        foldAndCallCtx1 = {}
+        foldAndCallCtx1.update(programCtx1.foldResults)
+        foldAndCallCtx1.update(programCtx1.callResults)
+
+        foldAndCallCtx2 = {}
+        foldAndCallCtx2.update(programCtx2.foldResults)
+        foldAndCallCtx2.update(programCtx2.callResults)
+
+        foldRes1 = foldAndCallCtx1[e1.name] # TODO what if it is a call on a boxedz3int?
+        foldRes2 = foldAndCallCtx2[e2.name]
+
+        print "Got fold results: ", foldRes1, foldRes2
+
+
+
+
+        return False
 
 
     def verifyEquivalentElements(self, e1, e2):

@@ -64,18 +64,18 @@ def takeSumMod5SumOfTriples(rdd):
 
 def isSimpleSumMod5Equal0(rdd):
     modResult1 = rdd.fold(0, simpleSum)
-    return apply(equal0mod5, (modResult1,))
+    return equal0mod5(modResult1)
 
 def isSimpleSumMod5OfTripledEqual0(rdd):
     rddTripled = rdd.map(triple)
     modResult2 = rddTripled.fold(0, simpleSum)
-    return apply(equal0mod5, (modResult2,))
+    return equal0mod5(modResult2)
 
 def isSimpleSumMod6Equal0(rdd):
     modResult1 = rdd.fold(0, simpleSum)
-    return apply(equal0mod6, (modResult1,))
+    return equal0mod6(modResult1)
 
 def isSimpleSumMod6OfTripledEqual0(rdd):
     rddTripled = rdd.map(triple)
     modResult2 = rddTripled.fold(0, simpleSum)
-    return apply(equal0mod6, (modResult2,))
+    return equal0mod6(modResult2)
