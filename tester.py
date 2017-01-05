@@ -19,7 +19,8 @@ class Tester:
 
     def verify(self):
         verifier = Verifier()
-        return verifier.verifyEquivalence(self.f1, self.f2, *self.args)
+        verifier.setInputs(*self.args)
+        return verifier.verifyEquivalence(self.f1, self.f2)
 
 def test(test, expected):
     Globals.testNo += 1

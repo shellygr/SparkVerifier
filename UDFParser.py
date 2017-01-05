@@ -297,7 +297,10 @@ class UDFConverter(ast.NodeVisitor):
 
             if isinstance(arg, ast.Tuple) and i == 0: # This is a function on a record-type rdd, looping on the tuple's elements:
                 for j in range(0, len(arg.elts)):
-                    self.env[arg.elts[j].id] = self.term[j]
+                    if isinstance(self.term[i], ast.Num):
+                        self.env[arg.elts[j].id] = self.visit(self.term[i])
+                    else:
+                        self.env[arg.elts[j].id] = self.term[j]
             else:
                 # Each arg must be a name node
                 if isinstance(self.term[i], ast.Num):

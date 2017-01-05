@@ -13,12 +13,13 @@ class RDD:
 
     def refresh_vars(self):
         def rename_var(var):
-            name = var.id
-            new_name = gen_name(name)
+            name = str(var)
+            new_name = gen_name(name+"_r")
             return Int(new_name)
 
-        new_vars = map(rename_var, self.vars)
+        new_vars = tuple(map(rename_var, self.vars))
 
         print "refreshed vars for", self.name,":",new_vars
 
         self.vars = new_vars
+        return self

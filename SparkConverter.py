@@ -21,7 +21,7 @@ class SparkConverter(ast.NodeVisitor):
     # Vars are all the vars we keep for the solver  -  TODO: Get rid of it!
     # Program name is the name of the function representing the spark program
     # rdds is a list of the concrete arguments from which we infer type information
-    def __init__(self, solver, programName, *rdds):
+    def __init__(self, solver, programName, rdds):
         self.solver = solver # Need to also append all env to the solver in the end, but still required: for example, for filter
         self.programName = programName
         self.rdds = rdds
