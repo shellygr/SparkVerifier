@@ -48,3 +48,4 @@ class SparkContext(object):
         Globals.input_rdds[name] = rdd
 
         return rdd
+

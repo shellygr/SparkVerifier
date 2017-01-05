@@ -300,7 +300,10 @@ class UDFConverter(ast.NodeVisitor):
                     self.env[arg.elts[j].id] = self.term[j]
             else:
                 # Each arg must be a name node
-                self.env[arg.id] = self.term[i]
+                if isinstance(self.term[i], ast.Num):
+                    self.env[arg.id] = self.visit(self.term[i])
+                else:
+                    self.env[arg.id] = self.term[i]
 
         for line in node.body: # TODO: Support more than 1 line. Currently supports only a single line which must be a return
             result = self.visit(line) # only support Return, If and operations
@@ -326,8 +329,9 @@ class UDFConverter(ast.NodeVisitor):
 
         test = self.visit(node.test)
         # then = makeTuple(self.visit(node.body[0]))
-        then = self.visit(node.body[0])
+        then = normalizeTuple(self.visit(node.body[0]))
         # otherwise = makeTuple(self.visit(node.orelse[0]) if len(node.orelse) > 0 else None)
+        with_else = len(node.orelse) > 0
         otherwise = self.visit(node.orelse[0]) if len(node.orelse) > 0 else None
         debug("Test = %s, Then = %s, Otherwise = %s. Type of then is %s", test, then, otherwise, type(then))
 
@@ -339,7 +343,7 @@ class UDFConverter(ast.NodeVisitor):
             uVar = BoxedZ3IntVar(u)
 
         # Globals.newNames.append(uVar.val)
-        if otherwise != None:
+        if with_else:
             formula = If(test == True, uVar == then, uVar == otherwise)
             # formula = If(test == True, And([subU==subThen for subU,subThen in zip(self.vars[u],then)]), And([subU==subElse for subU,subElse in zip(self.vars[u],otherwise)]))
             debug("ADDING TO SOLVER: %s", formula)
