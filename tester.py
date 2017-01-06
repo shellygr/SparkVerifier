@@ -63,34 +63,34 @@ r_sales = sc.parallelize([(1,18112016), (3,18112016), (3,20112016), (2,01122015)
 
 
 # Basic
-test(
-Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMap, rdd), "equivalent"
-)
-
-test(
-Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMapWrong, rdd), "Not equivalent"
-)
-
-
-test(
-Tester(doublingCartesian.cartesianThenMap, doublingCartesian.mapThenCartesian, rdd), "equivalent"
-)
-
-test(
-Tester(doublingElements.doubleMap, doublingElements.doubleAndAdd1Map, rdd), "Not equivalent"
-)
-
-test(
-Tester(filterCartesian.cartesianThenFilter, filterCartesian.filterThenCartesian, rdd, rdd2), "equivalent"
-)
-
-test(
-Tester(filterCartesianNonEquivalent.cartesianThenWrongFilter, filterCartesianNonEquivalent.filterThenCartesian, rdd, rdd2), "Not equivalent"
-)
-
-test(
-Tester(discountTest1.takeMinimum, discountTest1.takeMinimumAfterDiscount, rdd), "Not equivalent"
-)
+# test(
+# Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMap, rdd), "equivalent"
+# )
+#
+# test(
+# Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMapWrong, rdd), "Not equivalent"
+# )
+#
+#
+# test(
+# Tester(doublingCartesian.cartesianThenMap, doublingCartesian.mapThenCartesian, rdd), "equivalent"
+# )
+#
+# test(
+# Tester(doublingElements.doubleMap, doublingElements.doubleAndAdd1Map, rdd), "Not equivalent"
+# )
+#
+# test(
+# Tester(filterCartesian.cartesianThenFilter, filterCartesian.filterThenCartesian, rdd, rdd2), "equivalent"
+# )
+#
+# test(
+# Tester(filterCartesianNonEquivalent.cartesianThenWrongFilter, filterCartesianNonEquivalent.filterThenCartesian, rdd, rdd2), "Not equivalent"
+# )
+#
+# test(
+# Tester(discountTest1.takeMinimum, discountTest1.takeMinimumAfterDiscount, rdd), "Not equivalent"
+# )
 
 test(
 Tester(discountTest1.isMinimumAtLeast100, discountTest1.isMinimumAfterDiscountAtLeast80, rdd), "equivalent"

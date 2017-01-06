@@ -116,6 +116,9 @@ class Verifier:
             else:
                 return self.verifyEquivalentElements(ret1, ret2)
 
+    def verifyEquivalentSyncfolds(self, foldRes1, foldRes2, programCtx1, programCtx2, element_index):
+        pass
+
     def isAgg1pairsync(self, foldRes1, foldRes2, programCtx1, programCtx2, element_index = -1):
         def get_refreshed_fold_elements(element_index):
             refreshed_inputs = tuple(map(lambda x: x.refresh_vars(), self.inputs))
@@ -214,10 +217,12 @@ class Verifier:
         secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (firstApp2, refreshed_for_secondapp_obj2.term), self.solver)
         shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), self.solver)
 
+        # There is an assumption that secondApp1, secondApp2, shrinked1, shrinked2 are all BoxedZ3Int-s that we can refer to whose 'val' fields.
+        # TODO: If those are tuples, include all elements. Also map all to val, and make sure all tuple elements are indeed such ints - if not, consider allocating "s" variables specialized for it.
         self.solver.push()
         formula = Exists(list(normalizeTuple(rep_var_sets1)),
                             Exists(list(normalizeTuple(rep_var_sets_refreshed1)),
-                                ForAll(list(normalizeTuple(rep_var_set_shrinked1)),
+                                ForAll(list(normalizeTuple(rep_var_set_shrinked1).union(set([secondApp1.val]).union(set([secondApp2.val]).union(set([shrinked1.val]).union(set([shrinked2.val])))))),
                                    Not(And(secondApp1==shrinked1,secondApp2==shrinked2)))))
         print "AggPair1Sync containment check formula:",formula
         self.solver.add(formula)

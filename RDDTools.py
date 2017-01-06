@@ -22,5 +22,5 @@ def namesToVars(dict, names):
 def gen_name(op):
     Globals.index += 1
     name = "%s%d" % (op, Globals.index)
-    debug("%s", name)
+    # debug("%s", name)
     return name
