@@ -13,3 +13,17 @@ Verifier.pyc
 WrapperClass.pyc
 .idea/
 *.pyc
+test/aggregateAndFilter.pyc
+test/byKey1.pyc
+test/byKey2.pyc
+test/discountTest1.pyc
+test/discountTest2.pyc
+test/doublingCartesian.pyc
+test/doublingElements.pyc
+test/filterCartesianNonEquivalent.pyc
+test/filterCartesian.pyc
+test/__init__.pyc
+test/join.pyc
+test/minimumMaximumFold.pyc
+test/moduloFoldTest1.pyc
+test/operatorPushback.pyc

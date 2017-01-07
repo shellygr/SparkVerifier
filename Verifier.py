@@ -116,31 +116,54 @@ class Verifier:
             else:
                 return self.verifyEquivalentElements(ret1, ret2)
 
+    def get_refreshed_fold_elements(self, element_index):
+        refreshed_inputs = tuple(map(lambda x: x.refresh_vars(), self.inputs))
+        refreshed_result1 = self.calcTermForProgram(0, refreshed_inputs)
+        refreshed_result2 = self.calcTermForProgram(1, refreshed_inputs)
+
+        refreshed_result1_ret = normalizeTuple(refreshed_result1.ret)
+        refreshed_result2_ret = normalizeTuple(refreshed_result2.ret)
+        if element_index > -1:
+            refreshed_results_zip = zip(refreshed_result1_ret, refreshed_result2_ret,
+                                        range(0, len(refreshed_result1_ret)))
+            relevant_refreshed_element1 = refreshed_results_zip[element_index]
+            relevant_refreshed_element2 = refreshed_results_zip[element_index]
+
+        else:
+            relevant_refreshed_element1 = refreshed_result1_ret
+            relevant_refreshed_element2 = refreshed_result2_ret
+
+        refreshedFoldAndCallCtx1 = self.getFoldAndCallCtx(refreshed_result1)
+        refreshedFoldAndCallCtx2 = self.getFoldAndCallCtx(refreshed_result2)
+
+        return refreshedFoldAndCallCtx1, refreshedFoldAndCallCtx2, refreshedFoldAndCallCtx1[relevant_refreshed_element1.name], refreshedFoldAndCallCtx2[relevant_refreshed_element2.name]
+
+
     def verifyEquivalentSyncfolds(self, foldRes1, foldRes2, programCtx1, programCtx2, element_index):
+
+
+        foldAndCallCtx1 = self.getFoldAndCallCtx(programCtx1)
+        foldAndCallCtx2 = self.getFoldAndCallCtx(programCtx2)
+
+        rep_var_sets1, inits1, intermediate1, advanced1 = self.get_objects_for_agg1(foldRes1, foldAndCallCtx1)
+        print "For Fold1",foldRes1,":",rep_var_sets1, inits1, intermediate1, advanced1
+
+        rep_var_sets2, inits2, intermediate2, advanced2 = self.get_objects_for_agg1(foldRes2, foldAndCallCtx2)
+        print "For Fold2", foldRes2, ":",rep_var_sets2, inits2, intermediate2, advanced2
+
+        # Need to refresh the vars - for the second application
+        refreshed_ctx_for_secondapp1, refreshed_ctx_for_secondapp2, refreshed_fold_for_secondapp1, refreshed_fold_for_secondapp2 = self.get_refreshed_fold_elements(element_index)
+
+        rep_var_sets_refreshed1, inits_refreshed1, intermediate_refreshed1, advanced_refreshed1 = self.get_objects_for_agg1(refreshed_fold_for_secondapp1, refreshed_ctx_for_secondapp1)
+        print "For RefreshedFoldForSecondApp1",refreshed_fold_for_secondapp1,":",rep_var_sets_refreshed1,inits_refreshed1,intermediate_refreshed1,advanced_refreshed1
+
+        rep_var_sets_refreshed2, inits_refreshed2, intermediate_refreshed2, advanced_refreshed2 = self.get_objects_for_agg1(refreshed_fold_for_secondapp2, refreshed_ctx_for_secondapp2)
+        print "For RefreshedFoldForSecondApp2", refreshed_fold_for_secondapp2, ":", rep_var_sets_refreshed2, inits_refreshed2, intermediate_refreshed2, advanced_refreshed2
+
+
         pass
 
     def isAgg1pairsync(self, foldRes1, foldRes2, programCtx1, programCtx2, element_index = -1):
-        def get_refreshed_fold_elements(element_index):
-            refreshed_inputs = tuple(map(lambda x: x.refresh_vars(), self.inputs))
-            refreshed_result1 = self.calcTermForProgram(0, refreshed_inputs)
-            refreshed_result2 = self.calcTermForProgram(1, refreshed_inputs)
-
-            refreshed_result1_ret = normalizeTuple(refreshed_result1.ret)
-            refreshed_result2_ret = normalizeTuple(refreshed_result2.ret)
-            if element_index > -1:
-                refreshed_results_zip = zip(refreshed_result1_ret, refreshed_result2_ret,
-                                            range(0, len(refreshed_result1_ret)))
-                relevant_refreshed_element1 = refreshed_results_zip[element_index]
-                relevant_refreshed_element2 = refreshed_results_zip[element_index]
-
-            else:
-                relevant_refreshed_element1 = refreshed_result1_ret
-                relevant_refreshed_element2 = refreshed_result2_ret
-
-            refreshedFoldAndCallCtx1 = self.getFoldAndCallCtx(refreshed_result1)
-            refreshedFoldAndCallCtx2 = self.getFoldAndCallCtx(refreshed_result2)
-
-            return refreshedFoldAndCallCtx1, refreshedFoldAndCallCtx2, refreshedFoldAndCallCtx1[relevant_refreshed_element1.name], refreshedFoldAndCallCtx2[relevant_refreshed_element2.name]
 
         call_func1 = None
         call_func2 = None
@@ -174,7 +197,7 @@ class Verifier:
         print "For Fold2", foldRes2, ":",rep_var_sets2, inits2, intermediate2, advanced2
 
         # Need to refresh the vars - for the second application
-        refreshed_ctx_for_secondapp1, refreshed_ctx_for_secondapp2, refreshed_fold_for_secondapp1, refreshed_fold_for_secondapp2 = get_refreshed_fold_elements(element_index)
+        refreshed_ctx_for_secondapp1, refreshed_ctx_for_secondapp2, refreshed_fold_for_secondapp1, refreshed_fold_for_secondapp2 = self.get_refreshed_fold_elements(element_index)
 
         rep_var_sets_refreshed1, inits_refreshed1, intermediate_refreshed1, advanced_refreshed1 = self.get_objects_for_agg1(refreshed_fold_for_secondapp1, refreshed_ctx_for_secondapp1)
         print "For RefreshedFoldForSecondApp1",refreshed_fold_for_secondapp1,":",rep_var_sets_refreshed1,inits_refreshed1,intermediate_refreshed1,advanced_refreshed1
@@ -186,7 +209,7 @@ class Verifier:
         refreshed_fold_for_secondapp2 = unfold_calls(refreshed_fold_for_secondapp2)
 
         # Need to refresh the vars - for the shrinked application
-        refreshed_ctx_for_shrinked1, refreshed_ctx_for_shrinked2, refreshed_fold_for_shrink1, refreshed_fold_for_shrink2 = get_refreshed_fold_elements(element_index)
+        refreshed_ctx_for_shrinked1, refreshed_ctx_for_shrinked2, refreshed_fold_for_shrink1, refreshed_fold_for_shrink2 = self.get_refreshed_fold_elements(element_index)
 
         rep_var_set_shrinked1, inits_shrinked1, intermediate_shrinked1, advanced_shrinked1 = self.get_objects_for_agg1(refreshed_fold_for_shrink1, refreshed_ctx_for_shrinked1)
         print "For RefreshsedFoldForShrinked1",refreshed_fold_for_shrink1,":",rep_var_set_shrinked1,inits_shrinked1,intermediate_shrinked1,advanced_shrinked1
