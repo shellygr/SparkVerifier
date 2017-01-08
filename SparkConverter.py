@@ -109,8 +109,9 @@ class SparkConverter(ast.NodeVisitor):
 
             result = substituteInFuncDec(Globals.funcs[udf.id], udf_arg, self.solver)
 
+            result = makeTuple(result)
             # TODO: result may have an arity > 1. This should be noted when reading from env.
-            return makeTuple(result), len(result), first_rdd_vars, first_rdd_fold_level
+            return result, len(result), first_rdd_vars, first_rdd_fold_level
             # solver.add()
 
         if op_name == "filter":
@@ -124,10 +125,20 @@ class SparkConverter(ast.NodeVisitor):
             then = True
             otherwise = True
             for i in range(0, udf_arg_arity):
-                out_var = BoxedZ3IntVar(gen_name("t"))
-                out_vars += (out_var,)
-                then = And(then, out_var == normalizeTuple(udf_arg[i]))
-                otherwise = And(otherwise, out_var == Bot())
+                base_name = gen_name("t")
+                if isinstance(udf_arg[i], tuple):
+                    sub_out_vars = ()
+                    for j in range(0, len(udf_arg[i])):
+                        out_var = BoxedZ3IntVar(base_name)
+                        sub_out_vars += (out_var,)
+                        then = And(then, out_var == normalizeTuple(udf_arg[i][j]))
+                        otherwise = And(otherwise, out_var == Bot())
+                    out_vars += (sub_out_vars,)
+                else:
+                    out_var = BoxedZ3IntVar(base_name)
+                    out_vars += (out_var,)
+                    then = And(then, out_var == normalizeTuple(udf_arg[i]))
+                    otherwise = And(otherwise, out_var == Bot())
 
             ite = If(result == True, then, otherwise)
             self.solver.add(ite)
@@ -162,7 +173,10 @@ class SparkConverter(ast.NodeVisitor):
                 self.solver.add(If(isAnyBot, out_t == Bot(), out_t == orig_t))
 
             result = (out_vars1, out_vars2)
-            return result, first_term_arity + other_term_arity, first_term_vars.union(other_term_vars), max(first_rdd_fold_level, other_term_fold_level) # This max has no meaning really...
+            # 2 was originally first_term_arity + other_term_arity,
+            return result, \
+                   2, \
+                   first_term_vars.union(other_term_vars), max(first_rdd_fold_level, other_term_fold_level) # This max has no meaning really...
 
 
         def create_folded_vars(foldResult, result_arity):

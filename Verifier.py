@@ -9,7 +9,7 @@ from RDDTools import gen_name
 from SolverTools import normalizeTuple
 from SparkConverter import SparkConverter
 from UDFParser import getSource, substituteInFuncDec
-from WrapperClass import BoxedZ3IntVarNonBot, BoxedZ3Int
+from WrapperClass import BoxedZ3IntVarNonBot, BoxedZ3Int, BoxedZ3IntVar
 from tools import debug
 
 class FuncDbBuilder(ast.NodeVisitor):
@@ -100,10 +100,24 @@ class Verifier:
 
            are_equivalent = True
            for e1, e2, element_index in zip(ret1, ret2, range(0,len(ret1))):
+               debug("Comparing %s and %s (index %d)", e1, e2, element_index)
                if sc1.ret_fold_level > 0:
                    are_equivalent = self.verifyEquivalentFolds(normalizeTuple(e1), normalizeTuple(e2), sc1, sc2, element_index)
                else:
-                    are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1), normalizeTuple(e2), element_index)
+                   e1 = normalizeTuple(e1)
+                   e2 = normalizeTuple(e2)
+                   if isinstance(e1, tuple) and isinstance(e2, tuple) and len(e1) != len(e2):
+                       return False
+
+                   if isinstance(e1, tuple):
+                       for e1b, e2b, element_index_b in zip(e1, e2, range(0,len(e1))):
+                           debug("Comparing %s and %s (index %d)", e1b, e2b, element_index_b)
+                           are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1b), normalizeTuple(e2b), element_index_b)
+
+                           if are_equivalent == False:
+                               return False
+                   else:
+                       are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1), normalizeTuple(e2), element_index)
 
                if are_equivalent == False:
                    return False
@@ -111,6 +125,7 @@ class Verifier:
            return True
 
         if not isinstance(ret1, tuple) and not isinstance(ret2, tuple):
+            debug("Comparing %s and %s", ret1, ret2)
             if sc1.ret_fold_level > 0:
                 return self.verifyEquivalentFolds(ret1, ret2, sc1, sc2)
             else:
@@ -141,6 +156,26 @@ class Verifier:
 
     def verifyEquivalentSyncfolds(self, foldRes1, foldRes2, programCtx1, programCtx2, element_index):
 
+        call_func1 = None
+        call_func2 = None
+
+        if isinstance(foldRes1, CallResult.CallResult):  # TODO: In our theory, aggpair1sync can only be on a single fold, so even if we have a call, it's a call with a single argument
+            if len(foldRes1.args) > 1:
+                return False
+
+            call_func1 = foldRes1.func
+            foldRes1 = foldRes1.args[0]
+        else:
+            call_func1 = "id"
+
+        if isinstance(foldRes2, CallResult.CallResult):  # TODO: In our theory, aggpair1sync can only be on a single fold, so even if we have a call, it's a call with a single argument
+            if len(foldRes2.args) > 1:
+                return False
+
+            call_func2 = foldRes2.func
+            foldRes2 = foldRes2.args[0]
+        else:
+            call_func2 = "id"
 
         foldAndCallCtx1 = self.getFoldAndCallCtx(programCtx1)
         foldAndCallCtx2 = self.getFoldAndCallCtx(programCtx2)
@@ -151,6 +186,10 @@ class Verifier:
         rep_var_sets2, inits2, intermediate2, advanced2 = self.get_objects_for_agg1(foldRes2, foldAndCallCtx2)
         print "For Fold2", foldRes2, ":",rep_var_sets2, inits2, intermediate2, advanced2
 
+        if rep_var_sets1 != rep_var_sets2:
+            print "Not equivalent due to different rep var sets"
+            return False
+
         # Need to refresh the vars - for the second application
         refreshed_ctx_for_secondapp1, refreshed_ctx_for_secondapp2, refreshed_fold_for_secondapp1, refreshed_fold_for_secondapp2 = self.get_refreshed_fold_elements(element_index)
 
@@ -160,18 +199,106 @@ class Verifier:
         rep_var_sets_refreshed2, inits_refreshed2, intermediate_refreshed2, advanced_refreshed2 = self.get_objects_for_agg1(refreshed_fold_for_secondapp2, refreshed_ctx_for_secondapp2)
         print "For RefreshedFoldForSecondApp2", refreshed_fold_for_secondapp2, ":", rep_var_sets_refreshed2, inits_refreshed2, intermediate_refreshed2, advanced_refreshed2
 
+        refreshed_fold_for_secondapp1 = self.unfold_calls(refreshed_fold_for_secondapp1)
+        refreshed_fold_for_secondapp2 = self.unfold_calls(refreshed_fold_for_secondapp2)
 
-        pass
+        foldResObj1 = self.from_boxed_var_to_complex_obj(foldRes1, foldAndCallCtx1)
+        foldResObj2 = self.from_boxed_var_to_complex_obj(foldRes2, foldAndCallCtx2)
+        refreshed_for_secondapp_obj1 = self.from_boxed_var_to_complex_obj(refreshed_fold_for_secondapp1,
+                                                                          refreshed_ctx_for_secondapp1)
+        refreshed_for_secondapp_obj2 = self.from_boxed_var_to_complex_obj(refreshed_fold_for_secondapp2,
+                                                                          refreshed_ctx_for_secondapp2)
+
+        firstApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, foldResObj1.term),
+                                        self.solver)
+        secondApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id],
+                                         (firstApp1, refreshed_for_secondapp_obj1.term), self.solver)
+
+        firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term),
+                                        self.solver)
+        secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id],
+                                         (firstApp2, refreshed_for_secondapp_obj2.term), self.solver)
+
+        if call_func1:
+            initsInCall1 = substituteInFuncDec(Globals.funcs[call_func1], inits1, self.solver)
+            firstInCall1 = substituteInFuncDec(Globals.funcs[call_func1], firstApp1, self.solver)
+            secondInCall1 = substituteInFuncDec(Globals.funcs[call_func1], secondApp1, self.solver)
+        else:
+            initsInCall1 = normalizeTuple(inits1)
+            firstInCall1 = firstApp1
+            secondInCall1 = secondApp1
+
+        if call_func2:
+            initsInCall2 = substituteInFuncDec(Globals.funcs[call_func2], inits2, self.solver)
+            firstInCall2 = substituteInFuncDec(Globals.funcs[call_func2], firstApp2, self.solver)
+            secondInCall2 = substituteInFuncDec(Globals.funcs[call_func2], secondApp2, self.solver)
+        else:
+            initsInCall2 = normalizeTuple(inits2)
+            firstInCall2 = firstApp2
+            secondInCall2 = secondApp2
+
+        if isinstance(initsInCall1, tuple):
+            work_on_tuples = True
+        else:
+            work_on_tuples = False
+
+        initComparison = True
+        if work_on_tuples:
+            for i1,i2 in zip(initsInCall1,initsInCall2):
+                initComparison = And(initComparison, i1==i2)
+        else:
+            initComparison = initsInCall1==initsInCall2
+
+        induction = True
+        if work_on_tuples:
+            for app1a,app2a,app1b,app2b in zip(firstInCall1, secondInCall1, firstInCall2, secondInCall2):
+                step = Implies((app1a==app1b),app2a==app2b)
+                induction = And(induction,step)
+        else:
+            step = Implies((firstInCall1==firstInCall2),secondInCall1==secondInCall2)
+            induction = And(induction, step)
+
+        print "AggPair1Sync check:",initComparison, "and", induction
+        self.solver.push()
+        self.solver.add(Not(And(initComparison, induction)))
+        result = solverResult(self.solver)
+        self.solver.pop()
+        if result == unsat:
+            self.solver.add(And(initComparison, induction))
+
+        return result
+
+    def unfold_calls(self, potential_call):
+        if isinstance(potential_call, CallResult.CallResult):
+            return potential_call.args[0]
+        else:
+            return potential_call
+
+    def from_boxed_var_to_complex_obj(self, obj, ctx):
+        if isinstance(obj, BoxedZ3Int):
+            return ctx[obj.name]
+        return obj
+
+    def make_vars(self, expression):
+        if isinstance(expression, tuple):
+            tup = ()
+            base_name = gen_name("n")
+            for elm in expression:
+                new_var_elm = BoxedZ3IntVar(gen_name(base_name))
+                self.solver.add(new_var_elm==elm)
+                tup += (new_var_elm,)
+
+            return tup
+        else:
+            new_var = BoxedZ3IntVar(gen_name("n"))
+            debug("%s == %s", new_var, expression)
+            self.solver.add(new_var==expression)
+            return new_var
 
     def isAgg1pairsync(self, foldRes1, foldRes2, programCtx1, programCtx2, element_index = -1):
 
         call_func1 = None
         call_func2 = None
-        def unfold_calls(potential_call):
-            if isinstance(potential_call, CallResult.CallResult):
-                return potential_call.args[0]
-            else:
-                return potential_call
 
         if isinstance(foldRes1, CallResult.CallResult):  # TODO: In our theory, aggpair1sync can only be on a single fold, so even if we have a call, it's a call with a single argument
             if len(foldRes1.args) > 1:
@@ -196,6 +323,10 @@ class Verifier:
         rep_var_sets2, inits2, intermediate2, advanced2 = self.get_objects_for_agg1(foldRes2, foldAndCallCtx2)
         print "For Fold2", foldRes2, ":",rep_var_sets2, inits2, intermediate2, advanced2
 
+        if rep_var_sets1 != rep_var_sets2:
+            print "Not aggpair1sync due to different rep var sets"
+            return False
+
         # Need to refresh the vars - for the second application
         refreshed_ctx_for_secondapp1, refreshed_ctx_for_secondapp2, refreshed_fold_for_secondapp1, refreshed_fold_for_secondapp2 = self.get_refreshed_fold_elements(element_index)
 
@@ -205,8 +336,8 @@ class Verifier:
         rep_var_sets_refreshed2, inits_refreshed2, intermediate_refreshed2, advanced_refreshed2 = self.get_objects_for_agg1(refreshed_fold_for_secondapp2, refreshed_ctx_for_secondapp2)
         print "For RefreshedFoldForSecondApp2", refreshed_fold_for_secondapp2, ":", rep_var_sets_refreshed2, inits_refreshed2, intermediate_refreshed2, advanced_refreshed2
 
-        refreshed_fold_for_secondapp1 = unfold_calls(refreshed_fold_for_secondapp1)
-        refreshed_fold_for_secondapp2 = unfold_calls(refreshed_fold_for_secondapp2)
+        refreshed_fold_for_secondapp1 = self.unfold_calls(refreshed_fold_for_secondapp1)
+        refreshed_fold_for_secondapp2 = self.unfold_calls(refreshed_fold_for_secondapp2)
 
         # Need to refresh the vars - for the shrinked application
         refreshed_ctx_for_shrinked1, refreshed_ctx_for_shrinked2, refreshed_fold_for_shrink1, refreshed_fold_for_shrink2 = self.get_refreshed_fold_elements(element_index)
@@ -217,36 +348,52 @@ class Verifier:
         rep_var_set_shrinked2, inits_shrinked2, intermediate_shrinked2, advanced_shrinked2 = self.get_objects_for_agg1(refreshed_fold_for_shrink2, refreshed_ctx_for_shrinked2)
         print "For RefreshsedFoldForShrinked2", refreshed_fold_for_shrink2, ":", rep_var_set_shrinked2, inits_shrinked2, intermediate_shrinked2, advanced_shrinked2
 
-        refreshed_fold_for_shrink1 = unfold_calls(refreshed_fold_for_shrink1)
-        refreshed_fold_for_shrink2 = unfold_calls(refreshed_fold_for_shrink2)
+        refreshed_fold_for_shrink1 = self.unfold_calls(refreshed_fold_for_shrink1)
+        refreshed_fold_for_shrink2 = self.unfold_calls(refreshed_fold_for_shrink2)
 
-        def from_boxed_var_to_complex_obj(obj, ctx):
-            if isinstance(obj, BoxedZ3Int):
-                return ctx[obj.name]
-            return obj
 
-        foldResObj1 = from_boxed_var_to_complex_obj(foldRes1, foldAndCallCtx1)
-        foldResObj2 = from_boxed_var_to_complex_obj(foldRes2, foldAndCallCtx2)
-        refreshed_for_secondapp_obj1 = from_boxed_var_to_complex_obj(refreshed_fold_for_secondapp1, refreshed_ctx_for_secondapp1)
-        refreshed_for_secondapp_obj2 = from_boxed_var_to_complex_obj(refreshed_fold_for_secondapp2, refreshed_ctx_for_secondapp2)
-        refreshed_for_shrinked_obj1 = from_boxed_var_to_complex_obj(refreshed_fold_for_shrink1, refreshed_ctx_for_shrinked1)
-        refreshed_for_shrinked_obj2 = from_boxed_var_to_complex_obj(refreshed_fold_for_shrink2, refreshed_ctx_for_shrinked2)
 
-        firstApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, foldResObj1.term), self.solver)
-        secondApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (firstApp1, refreshed_for_secondapp_obj1.term), self.solver)
-        shrinked1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, refreshed_for_shrinked_obj1.term), self.solver)
+        foldResObj1 = self.from_boxed_var_to_complex_obj(foldRes1, foldAndCallCtx1)
+        foldResObj2 = self.from_boxed_var_to_complex_obj(foldRes2, foldAndCallCtx2)
+        refreshed_for_secondapp_obj1 = self.from_boxed_var_to_complex_obj(refreshed_fold_for_secondapp1, refreshed_ctx_for_secondapp1)
+        refreshed_for_secondapp_obj2 = self.from_boxed_var_to_complex_obj(refreshed_fold_for_secondapp2, refreshed_ctx_for_secondapp2)
+        refreshed_for_shrinked_obj1 = self.from_boxed_var_to_complex_obj(refreshed_fold_for_shrink1, refreshed_ctx_for_shrinked1)
+        refreshed_for_shrinked_obj2 = self.from_boxed_var_to_complex_obj(refreshed_fold_for_shrink2, refreshed_ctx_for_shrinked2)
 
-        firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term), self.solver)
-        secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (firstApp2, refreshed_for_secondapp_obj2.term), self.solver)
-        shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), self.solver)
+        firstApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, foldResObj1.term), self.solver, True)
+        secondApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (firstApp1, refreshed_for_secondapp_obj1.term), self.solver, True)
+        shrinked1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, refreshed_for_shrinked_obj1.term), self.solver, True)
+
+        firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term), self.solver, True)
+        secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (firstApp2, refreshed_for_secondapp_obj2.term), self.solver, True)
+        shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), self.solver, True)
+
+        firstApp1 = self.make_vars(firstApp1)
+        secondApp1 = self.make_vars(secondApp1)
+        shrinked1 = self.make_vars(shrinked1)
+        firstApp2 = self.make_vars(firstApp2)
+        secondApp2 = self.make_vars(secondApp2)
+        shrinked2 = self.make_vars(shrinked2)
+
+        if isinstance(shrinked1, tuple):
+            work_on_tuples = True
+        else:
+            work_on_tuples = False
+
+        syncEquivalenceConjunction = True
+        if work_on_tuples:
+            for s1,sh1,s2,sh2 in secondApp1,shrinked1,secondApp2,shrinked2:
+                syncEquivalenceConjunction = And(syncEquivalenceConjunction, s1==sh1, s2==sh2)
+        else:
+            syncEquivalenceConjunction = And(secondApp1==shrinked1,secondApp2==shrinked2)
 
         # There is an assumption that secondApp1, secondApp2, shrinked1, shrinked2 are all BoxedZ3Int-s that we can refer to whose 'val' fields.
         # TODO: If those are tuples, include all elements. Also map all to val, and make sure all tuple elements are indeed such ints - if not, consider allocating "s" variables specialized for it.
         self.solver.push()
         formula = Exists(list(normalizeTuple(rep_var_sets1)),
                             Exists(list(normalizeTuple(rep_var_sets_refreshed1)),
-                                ForAll(list(normalizeTuple(rep_var_set_shrinked1).union(set([secondApp1.val]).union(set([secondApp2.val]).union(set([shrinked1.val]).union(set([shrinked2.val])))))),
-                                   Not(And(secondApp1==shrinked1,secondApp2==shrinked2)))))
+                                ForAll(list(normalizeTuple(rep_var_set_shrinked1).union(secondApp1.myvars()).union(secondApp2.myvars()).union(shrinked1.myvars()).union(shrinked2.myvars())),
+                                   Not(syncEquivalenceConjunction))))
         print "AggPair1Sync containment check formula:",formula
         self.solver.add(formula)
         result = solverResult(self.solver)
@@ -392,7 +539,7 @@ def solverResult(solver):
     debug("Solver: %s", solver)
     # Solve - if UNSAT, equivalent.
     result = solver.check()
-    print solver.sexpr()
+    # debug("%s",solver.sexpr())
     debug("Solver result = %s", result)
     if result == sat:
         print '\033[91m'+ "Not equivalent! Model showing inequivalence %s" % (solver.model()) + '\033[0m'

@@ -16,10 +16,11 @@ def getSource(f):
 
 
 class UDFConverter(ast.NodeVisitor):
-    def __init__(self, term, solver):
+    def __init__(self, term, solver, isFoldUdf = False):
         self.term = term
         self.solver = solver
         self.env = {}
+        self.isFoldUdf = isFoldUdf
 
     def visit_FunctionDef(self, node):
 
@@ -28,10 +29,17 @@ class UDFConverter(ast.NodeVisitor):
 
             if isinstance(arg, ast.Tuple) and i == 0: # This is a function on a record-type rdd, looping on the tuple's elements:
                 for j in range(0, len(arg.elts)):
-                    if isinstance(self.term[j], ast.Num):
-                        self.env[arg.elts[j].id] = self.visit(self.term[j])
+                    if isinstance(arg.elts[j], ast.Tuple):
+                        for k in range(0, len(arg.elts[j].elts)):
+                            if isinstance(self.term[j], ast.Num):
+                                self.env[arg.elts[j].elts[k].id] = self.visit(self.term[j][k])
+                            else:
+                                self.env[arg.elts[j].elts[k].id] = self.term[j][k]
                     else:
-                        self.env[arg.elts[j].id] = self.term[j]
+                        if isinstance(self.term[j], ast.Num):
+                            self.env[arg.elts[j].id] = self.visit(self.term[j])
+                        else:
+                            self.env[arg.elts[j].id] = self.term[j]
             else:
                 # Each arg must be a name node
                 if isinstance(self.term[i], ast.Num):
@@ -42,12 +50,45 @@ class UDFConverter(ast.NodeVisitor):
         for line in node.body: # TODO: Support more than 1 line. Currently supports only a single line which must be a return
             result = self.visit(line) # only support Return, If and operations
 
+        if self.isFoldUdf:
+            result_var = BoxedZ3IntVar("fU")
+            is_any_bot = False
+            for i in range(1,len(node.args.args)):
+                is_any_bot = Or(is_any_bot, self.term[i]==bot)
+
+            acc = self.term[0]
+            if isinstance(acc, ast.Num):
+                acc = self.visit(acc)
+
+            self.solver.add(If(is_any_bot, result_var == acc, result_var == result))
+
+            return result_var
+
         return result
 
     def visit_Return(self, node):
         # Return must be non-void
         ret = self.visit(node.value)
         return ret
+
+    def visit_Call(self, node):
+        func_name = node.func.id
+        func = Globals.funcs[func_name]
+        # Backup environment
+        backupEnv = {}
+        for arg,idx in zip(func.args.args, range(0,len(func.args.args))):
+            backupEnv[arg.id] = self.env[arg.id]
+            self.env[arg.id] = self.visit(node.args[idx])
+
+        for line in func.body:
+            result = self.visit(line)
+
+        # Restore environment
+        for arg_name in backupEnv:
+            self.env[arg_name] = backupEnv[arg_name]
+
+        return result
+
 
     def visit_Name(self, node):
         if node.id == "True":
@@ -163,12 +204,12 @@ class UDFConverter(ast.NodeVisitor):
         return op(self.visit(node.operand))
 
 
-def substituteInFuncDec(f, term, solver):
+def substituteInFuncDec(f, term, solver, isFoldUdf = False):
 
     debug("Original code %s", ast.dump(f))
 
     term = makeTuple(term)
-    converter = UDFConverter(term, solver)
+    converter = UDFConverter(term, solver, isFoldUdf)
     resultingTerm = converter.visit(f)
 
     debug("Substituted %s in UDF %s, got: %s, type = %s", term, f.name, resultingTerm, type(resultingTerm))

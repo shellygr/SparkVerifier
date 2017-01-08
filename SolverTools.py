@@ -68,7 +68,7 @@ def solverResult(solver):
     debug("Solver: %s", solver)
     # Solve - if UNSAT, equivalent.
     result = solver.check()
-    print solver.sexpr()
+    debug("%s", solver.sexpr())
     debug("Solver result = %s", result)
     if result == sat:
         print '\033[91m'+ "Not equivalent! Model showing inequivalence %s" % (solver.model()) + '\033[0m'

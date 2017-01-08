@@ -1,10 +1,13 @@
 from z3 import *
 
+from RDDTools import gen_name
+
+
 class BoxedZ3Int:
     def __init__(self, val, isBot, name):
         self.val = val
         self.isBot = isBot
-        self.isUnique = False
+        self.isUnique = Bool("%s.isUnique"%name)
         self.name = name
 
     def __add__(self, other):
@@ -78,6 +81,9 @@ class BoxedZ3Int:
     # dict key support
     def __hash__(self):
         return hash((self.name))
+
+    def myvars(self):
+        return set({self.val, self.isBot, self.isUnique})
 
 def BoxedZ3IntVarNonBot(name, solver):
     var = BoxedZ3IntVar(name)

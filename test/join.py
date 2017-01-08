@@ -73,8 +73,9 @@ def mapJoin(rdd,rdd2):
     r1 = rdd.map(doublePair)
     r2 = rdd2.map(doublePair)
     p2 = r1.cartesian(r2)
-    p3 = p2.filter(joinFilterForPairs).map(postJoinMap)
-    return p3
+    p3 = p2.filter(joinFilterForPairs)
+    p4 = p3.map(postJoinMap)
+    return p4
 
 def mapValuesJoin(rdd, rdd2):
     r1 = rdd.map(doubleValue)
