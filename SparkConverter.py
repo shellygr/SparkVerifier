@@ -110,6 +110,8 @@ class SparkConverter(ast.NodeVisitor):
             result = substituteInFuncDec(Globals.funcs[udf.id], udf_arg, self.solver)
 
             result = makeTuple(result)
+
+            debug("Map operation: %s", result)
             # TODO: result may have an arity > 1. This should be noted when reading from env.
             return result, len(result), first_rdd_vars, first_rdd_fold_level
             # solver.add()
@@ -129,7 +131,7 @@ class SparkConverter(ast.NodeVisitor):
                 if isinstance(udf_arg[i], tuple):
                     sub_out_vars = ()
                     for j in range(0, len(udf_arg[i])):
-                        out_var = BoxedZ3IntVar(base_name)
+                        out_var = BoxedZ3IntVar(gen_name(base_name+"_"))
                         sub_out_vars += (out_var,)
                         then = And(then, out_var == normalizeTuple(udf_arg[i][j]))
                         otherwise = And(otherwise, out_var == Bot())
@@ -141,6 +143,7 @@ class SparkConverter(ast.NodeVisitor):
                     otherwise = And(otherwise, out_var == Bot())
 
             ite = If(result == True, then, otherwise)
+            debug("Filter operation formula: %s", ite)
             self.solver.add(ite)
             return out_vars, udf_arg_arity, first_rdd_vars, first_rdd_fold_level
 
@@ -168,11 +171,18 @@ class SparkConverter(ast.NodeVisitor):
             for t in first_rdd_term + other_rdd_term:
                 isAnyBot = Or(isAnyBot, Bot() == t)
 
+            debug("Is any of the terms a bottom? %s", isAnyBot)
+
             # Now we set the out_vars properly by adding the condition that if any of the participating elements in the cartesian is bot, then all are bot
+            formulaString = ""
             for (orig_t, out_t) in list(zip(first_rdd_term, out_vars1)) + list(zip(other_rdd_term, out_vars2)):
-                self.solver.add(If(isAnyBot, out_t == Bot(), out_t == orig_t))
+                formula = If(isAnyBot, out_t == Bot(), out_t == orig_t)
+                formulaString = formulaString + " AND " + str(formula)
+                self.solver.add(formula)
 
             result = (out_vars1, out_vars2)
+
+            debug("Cartesian operation: %s -> %s", formulaString, result)
             # 2 was originally first_term_arity + other_term_arity,
             return result, \
                    2, \
