@@ -9,17 +9,17 @@ from RDDTools import gen_name
 from SolverTools import normalizeTuple
 from SparkConverter import SparkConverter
 from UDFParser import getSource, substituteInFuncDec
-from WrapperClass import BoxedZ3IntVarNonBot, BoxedZ3Int, BoxedZ3IntVar
+from WrapperClass import BoxedZ3IntVarNonBot, BoxedZ3Int, BoxedZ3IntVar, BoxedZ3IntVal
 from tools import debug
 
 class FuncDbBuilder(ast.NodeVisitor):
     def visit_FunctionDef(self, node):
-        debug("Adding func name %s with above src", node.name)
+        # debug("Adding func name %s with above src", node.name)
         Globals.funcs[node.name] = node
 
 def fillAllFuncs(p):
     module = inspect.getmodule(p)
-    debug("Module of function %s is %s", p, module)
+    # debug("Module of function %s is %s", p, module)
     src = getSource(module)
     parsedSrc = ast.parse(src)
     FuncDbBuilder().visit(parsedSrc)
@@ -297,6 +297,8 @@ class Verifier:
 
     def isAgg1pairsync(self, foldRes1, foldRes2, programCtx1, programCtx2, element_index = -1):
 
+        self.solver.push()
+
         call_func1 = None
         call_func2 = None
 
@@ -367,13 +369,13 @@ class Verifier:
         firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term), self.solver, True)
         secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (firstApp2, refreshed_for_secondapp_obj2.term), self.solver, True)
         shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), self.solver, True)
-
-        firstApp1 = self.make_vars(firstApp1)
-        secondApp1 = self.make_vars(secondApp1)
-        shrinked1 = self.make_vars(shrinked1)
-        firstApp2 = self.make_vars(firstApp2)
-        secondApp2 = self.make_vars(secondApp2)
-        shrinked2 = self.make_vars(shrinked2)
+        #
+        # firstApp1 = self.make_vars(firstApp1)
+        # secondApp1 = self.make_vars(secondApp1)
+        # shrinked1 = self.make_vars(shrinked1)
+        # firstApp2 = self.make_vars(firstApp2)
+        # secondApp2 = self.make_vars(secondApp2)
+        # shrinked2 = self.make_vars(shrinked2)
 
         if isinstance(shrinked1, tuple):
             work_on_tuples = True
@@ -392,18 +394,19 @@ class Verifier:
         self.solver.push()
         formula = Exists(list(normalizeTuple(rep_var_sets1)),
                             Exists(list(normalizeTuple(rep_var_sets_refreshed1)),
-                                ForAll(list(normalizeTuple(rep_var_set_shrinked1).union(secondApp1.myvars()).union(secondApp2.myvars()).union(shrinked1.myvars()).union(shrinked2.myvars())),
+                                ForAll(list(normalizeTuple(rep_var_set_shrinked1)),#.union({secondApp1.get_val()}).union({secondApp2.get_val()}).union({shrinked1.get_val()}).union({shrinked2.get_val()})
                                    Not(syncEquivalenceConjunction))))
         print "AggPair1Sync containment check formula:",formula
         self.solver.add(formula)
         result = solverResult(self.solver)
         self.solver.pop()
 
-        if result :
-            print "This example is AggPair1Sync"
+        if result:
+            debug("This example is AggPair1Sync")
         else:
-            print "This example is not AggPair1Sync"
+            debug("This example is not AggPair1Sync")
 
+        self.solver.pop()
         return result
 
 
@@ -432,9 +435,9 @@ class Verifier:
             rep_var_sets += (foldResult.vars,)
             inits += (foldResult.init,)
 
-            intermediate_var = BoxedZ3IntVarNonBot(gen_name("intermediate"), self.solver)
+            intermediate_var = BoxedZ3IntVarNonBot(gen_name("intermediate"))
             advanced_var = substituteInFuncDec(Globals.funcs[foldResult.udf.id],
-                                               (intermediate_var, foldResult.term), self.solver)
+                                               (intermediate_var, foldResult.term), self.solver, True)
 
             intermediate_vars += (intermediate_var,)
             advanced_vars += (advanced_var,)
@@ -442,7 +445,7 @@ class Verifier:
             return rep_var_sets, inits, intermediate_vars, advanced_vars
 
         for call_arg in call_args:
-            print "Generating for call_arg %s from %s"%(call_arg, foldRes)
+            print "Generating for call_arg %s from call_args: %s"%(call_arg, foldRes)
             if (isinstance(call_arg, BoxedZ3Int)):
                 call_arg = ctx[call_arg.name]
 
@@ -475,7 +478,7 @@ class Verifier:
         foldRes1 = foldAndCallCtx1[e1.name] # TODO what if it is a call on a boxedz3int?
         foldRes2 = foldAndCallCtx2[e2.name]
 
-        print "Got fold/call results: ", foldRes1, foldRes2
+        print "Got fold/call results: ", foldRes1, "and",foldRes2
 
         """ CHECK IF AGG1PAIRSYNC """
         if self.isAgg1pairsync(foldRes1,foldRes2, programCtx1, programCtx2, element_index):
@@ -501,7 +504,7 @@ class Verifier:
         initComparison = True
         if work_on_tuples:
             for i1,i2 in zip(inits1,inits2):
-                initComparison = And(initComparison, i1==i2)
+                initComparison = And(initComparison, i1.n==i2.n)
         else:
             initComparison = inits1==inits2
 
@@ -514,6 +517,8 @@ class Verifier:
             step = Implies((intermediate1==intermediate2),advanced1==advanced2)
             induction = And(induction, step)
 
+        debug("Base formula: %s",initComparison)
+        debug("Induction formula: %s",induction)
         self.solver.push()
         self.solver.add(Not(And(initComparison, induction)))
         result = solverResult(self.solver)

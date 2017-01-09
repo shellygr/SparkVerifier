@@ -1,6 +1,6 @@
 from z3 import *
 
-from SparkZ3.Simulator.WrapperClass import BoxedZ3IntVar
+from WrapperClass import BoxedZ3IntVar
 
 r = (Int("r1"), Int("r2"))
 

@@ -77,7 +77,9 @@ class SparkConverter(ast.NodeVisitor):
                 name_base = gen_name("c")
                 self.callResults[name_base] = callResult
                 for i in range(0, result_arity):
-                    call_var = BoxedZ3IntVar(name_base)
+                    derived_name = gen_name(name_base)
+                    call_var = BoxedZ3IntVar(derived_name)
+                    self.callResults[derived_name] = callResult
                     call_vars += (call_var,)
 
                 return call_vars
@@ -214,6 +216,7 @@ class SparkConverter(ast.NodeVisitor):
             # Assign tmp variable(s) for the fold result
             fold_vars = create_folded_vars(result, result_arity)
 
+            debug("Fold operation returns fold vars %s with Fold object %s", fold_vars, result)
             # Return a tuple of variables representing the folded type result, so it could be given as input to functions
             return fold_vars, result_arity, {}, first_rdd_fold_level+1
 

@@ -85,10 +85,14 @@ class BoxedZ3Int:
     def myvars(self):
         return set({self.val, self.isBot, self.isUnique})
 
-def BoxedZ3IntVarNonBot(name, solver):
-    var = BoxedZ3IntVar(name)
-    solver.add(var.isBot==False)
-    return var
+    def get_val(self):
+        return self.val
+
+def BoxedZ3IntVarNonBot(name):
+    return BoxedZ3Int(Int('%s.val'%name), BoolVal(False), name)
+    # var = BoxedZ3IntVar(name)
+    # solver.add(var.isBot==False)
+    # return var
 
 def BoxedZ3IntVar(name):
     return BoxedZ3Int(Int('%s.val' % name), Bool('%s.isBot' % name), name)

@@ -22,6 +22,9 @@ class Tester:
         verifier.setInputs(*self.args)
         return verifier.verifyEquivalence(self.f1, self.f2)
 
+    def __str__(self):
+        return "%s=?=%s"%(self.f1,self.f2)
+
 def test(test, expected):
     Globals.testNo += 1
     start = time.time()
@@ -32,6 +35,8 @@ def test(test, expected):
         res = "equivalent"
     else:
         res = "Not equivalent"
+
+    print test
 
     if res==expected:
         print '\033[1;32;50m' + "%d: passed!" % Globals.testNo + '\033[0m'
@@ -61,69 +66,43 @@ r_prices = sc.parallelize([(1,89),(2,110),(3,65)])
 r_costs = sc.parallelize([(1,40),(2,60),(3,10)])
 r_sales = sc.parallelize([(1,18112016), (3,18112016), (3,20112016), (2,01122015), (3,15122016), (2,01022016),   (1,12122016)])
 
-
+test_dict = {
 # Basic
-test(
-Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMap, rdd), "equivalent"
-)
+    1: (Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMap, rdd), "equivalent"),
+    2: (Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMapWrong, rdd), "Not equivalent"),
+    3: (Tester(doublingCartesian.cartesianThenMap, doublingCartesian.mapThenCartesian, rdd), "equivalent"),
+    4: (Tester(doublingElements.doubleMap, doublingElements.doubleAndAdd1Map, rdd), "Not equivalent"),
+    5: (Tester(filterCartesian.cartesianThenFilter, filterCartesian.filterThenCartesian, rdd, rdd2), "equivalent"),
+    6: (Tester(filterCartesianNonEquivalent.cartesianThenWrongFilter, filterCartesianNonEquivalent.filterThenCartesian, rdd, rdd2), "Not equivalent"),
+    7: (Tester(discountTest1.takeMinimum, discountTest1.takeMinimumAfterDiscount, rdd), "Not equivalent"),
+    8: (Tester(discountTest1.isMinimumAtLeast100, discountTest1.isMinimumAfterDiscountAtLeast80, rdd), "equivalent"),
+    9: (Tester(discountTest1.isMinimumEqual100, discountTest1.isMinimumAfterDiscountEqual80, rdd), "equivalent"),
+    10: (Tester(moduloFoldTest1.takeSumMod5Sum, moduloFoldTest1.takeSumMod5SumOfTriples, rdd), "Not equivalent"),
+    11: (Tester(moduloFoldTest1.isSimpleSumMod5Equal0, moduloFoldTest1.isSimpleSumMod5OfTripledEqual0, rdd), "equivalent"),
+    12: (Tester(moduloFoldTest1.isSimpleSumMod6Equal0, moduloFoldTest1.isSimpleSumMod6OfTripledEqual0, rdd), "Not equivalent"),
+    13: (Tester(minimumMaximumFold.takeMaximum, minimumMaximumFold.takeMaximumByMinimum, rdd), "equivalent"),
+    14: (Tester(minimumMaximumFold.takeMaximumWrongInit, minimumMaximumFold.takeMaximumByMinimum, rdd), "Not equivalent"),
+    15: (Tester(aggregateAndFilter.aggregateFiltered, aggregateAndFilter.aggregateMap, rdd), "equivalent"),
+    16: (Tester(join.mapJoin, join.joinMap, rdd3, rdd4), "equivalent"),
+    17: (Tester(join.slimMapValuesJoin, join.slimJoinMap, rdd3, rdd4), "equivalent"),
+    18: (Tester(join.mapValuesJoin, join.joinMap, rdd3, rdd4), "Not equivalent"),
+    19: (Tester(join.filterJoin, join.joinThenFilter, rdd5, rdd6), "equivalent")
+}
 
-test(
-Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMapWrong, rdd), "Not equivalent"
-)
+def testAll():
+    for idx, (test_instance, expected_result) in test_dict.items():
+        test(test_instance, expected_result)
+
+def run_specific_test(idx):
+    test(*test_dict[idx])
+
+testAll()
+
+# run_specific_test(15)
 
 
-test(
-Tester(doublingCartesian.cartesianThenMap, doublingCartesian.mapThenCartesian, rdd), "equivalent"
-)
-
-test(
-Tester(doublingElements.doubleMap, doublingElements.doubleAndAdd1Map, rdd), "Not equivalent"
-)
-
-test(
-Tester(filterCartesian.cartesianThenFilter, filterCartesian.filterThenCartesian, rdd, rdd2), "equivalent"
-)
-
-test(
-Tester(filterCartesianNonEquivalent.cartesianThenWrongFilter, filterCartesianNonEquivalent.filterThenCartesian, rdd, rdd2), "Not equivalent"
-)
-
-test(
-Tester(discountTest1.takeMinimum, discountTest1.takeMinimumAfterDiscount, rdd), "Not equivalent"
-)
-
-test(
-Tester(discountTest1.isMinimumAtLeast100, discountTest1.isMinimumAfterDiscountAtLeast80, rdd), "equivalent"
-)
-
-test(
-Tester(discountTest1.isMinimumEqual100, discountTest1.isMinimumAfterDiscountEqual80, rdd), "equivalent"
-)
-#
-# test(
 # Tester(discountTest1.isMinimumAtLeast100, discountTest1.newDiscountProgram, rdd), "equivalent"
-# )
 
-
-test(
-Tester(moduloFoldTest1.takeSumMod5Sum, moduloFoldTest1.takeSumMod5SumOfTriples, rdd), "Not equivalent"
-)
-
-test(
-Tester(moduloFoldTest1.isSimpleSumMod5Equal0, moduloFoldTest1.isSimpleSumMod5OfTripledEqual0, rdd), "equivalent" # equivalent due to agg sync, but inquivalent in agg1
-)
-
-test(
-Tester(moduloFoldTest1.isSimpleSumMod6Equal0, moduloFoldTest1.isSimpleSumMod6OfTripledEqual0, rdd), "Not equivalent"
-)
-
-test(
-Tester(minimumMaximumFold.takeMaximum, minimumMaximumFold.takeMaximumByMinimum, rdd), "equivalent"
-)
-
-test(
-Tester(minimumMaximumFold.takeMaximumWrongInit, minimumMaximumFold.takeMaximumByMinimum, rdd), "Not equivalent"
-)
 #
 # test(
 # Tester(uninterpretedMapCartesian.cartesianThenMapUninterp, uninterpretedMapCartesian.mapUninterpThenCartesian, rdd, rdd2), "equivalent"
@@ -132,26 +111,6 @@ Tester(minimumMaximumFold.takeMaximumWrongInit, minimumMaximumFold.takeMaximumBy
 # test(
 # Tester(uninterpretedMapCartesian.cartesianThenMapUninterp, uninterpretedMapCartesian.mapPartialUninterpThenCartesian, rdd, rdd2), "Not equivalent"
 # )
-
-test(
-Tester(aggregateAndFilter.aggregateFiltered, aggregateAndFilter.aggregateMap, rdd), "equivalent"
-)
-
-test(
-Tester(join.mapJoin, join.joinMap, rdd3, rdd4), "equivalent"
-)
-
-test(
-Tester(join.slimMapValuesJoin, join.slimJoinMap, rdd3, rdd4), "equivalent"
-)
-
-test(
-Tester(join.mapValuesJoin, join.joinMap, rdd3, rdd4), "Not equivalent"
-)
-
-test(
-Tester(join.filterJoin, join.joinThenFilter, rdd5, rdd6), "equivalent"
-)
 
 
 # Not Presburger

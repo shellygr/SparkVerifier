@@ -9,4 +9,4 @@ class FoldResult:
         self.vars = vars
 
     def __str__(self):
-        return "[%s]_{%s,%s}^{%s}"%(self.term,self.init,self.udf,self.fold_level)
+        return "[%s]_{%s,%s}^{%s}"%(self.term,self.init.n,self.udf.id,self.fold_level)

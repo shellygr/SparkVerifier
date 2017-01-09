@@ -5,7 +5,7 @@ DEBUG = True
 
 def debug(str, *args):
     if (DEBUG):
-        print ("%s: "+str) %((inspect.stack()[1][3], )+args)
+        print ('\033[1m'+"%s: "+'\033[0m'+str) %((inspect.stack()[1][3], )+args)
 
 def idFunc(x):
     return x

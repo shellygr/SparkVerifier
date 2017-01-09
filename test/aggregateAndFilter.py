@@ -76,21 +76,21 @@ def isMinimumAfterDiscountAtLeast100(rdd):
 def someBoolUninterp(x):
     return True # impl doesn't matter
 
-def isOdd(x):
+def isEven(x):
     return x%2==0
 
 def countUdf((A,x)):
     return A+1
 
 def aggregateFiltered(rdd):
-    rddFilter = rdd.filter(isOdd) # originally - someBoolUninterp (TODO: check with aggpair1sync)
+    rddFilter = rdd.filter(isEven) # originally - someBoolUninterp (TODO: check with aggpair1sync)
 
     count = rddFilter.fold(0, countUdf)
 
     return count
 
 def filteringMap(x):
-    if isOdd(x): # Originally someBoolUninterp
+    if isEven(x): # Originally someBoolUninterp
         return 1
     else:
         return 0

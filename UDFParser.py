@@ -7,7 +7,7 @@ from z3 import If, And, Or, Not, Function, IntSort, BoolSort, Bool
 import Globals
 from RDDTools import gen_name
 from SolverTools import normalizeTuple, makeTuple
-from WrapperClass import _to_BoxedZ3Int, BoxedZ3Int, BoxedZ3IntVar, bot
+from WrapperClass import _to_BoxedZ3Int, BoxedZ3Int, BoxedZ3IntVar, bot, Bot, BoxedZ3IntVarNonBot
 from tools import debug
 
 
@@ -51,16 +51,18 @@ class UDFConverter(ast.NodeVisitor):
             result = self.visit(line) # only support Return, If and operations
 
         if self.isFoldUdf:
-            result_var = BoxedZ3IntVar("fU")
+            result_var = BoxedZ3IntVarNonBot(gen_name("fU"))
             is_any_bot = False
-            for i in range(1,len(node.args.args)):
-                is_any_bot = Or(is_any_bot, self.term[i]==bot)
+            for i in range(0,len(self.term[1])):
+                is_any_bot = Or(is_any_bot, Bot()==self.term[1][i])
 
             acc = self.term[0]
             if isinstance(acc, ast.Num):
                 acc = self.visit(acc)
 
-            self.solver.add(If(is_any_bot, result_var == acc, result_var == result))
+            foldUdfResultFormula = If(is_any_bot, result_var == acc, result_var == result)
+            debug("For fold UDF the result formula is %s", foldUdfResultFormula)
+            self.solver.add(foldUdfResultFormula)
 
             return result_var
 
@@ -118,9 +120,12 @@ class UDFConverter(ast.NodeVisitor):
             uVar = BoxedZ3IntVar(u)
 
         if with_else:
+            # formula = If(test == True, And(uVar.val == then, uVar.isBot == False), And(uVar.val == otherwise, uVar.isBot == False))
             formula = If(test == True, uVar == then, uVar == otherwise)
+            debug("Formula added for if: %s", formula)
             self.solver.add(formula)
         else:
+            # formula = If(test == True, And(uVar.val == then, uVar.isBot == False), uVar.isBot == True)
             formula = If(test == True, uVar == then, uVar == bot)
             self.solver.add(formula)
 
@@ -212,7 +217,7 @@ def substituteInFuncDec(f, term, solver, isFoldUdf = False):
     converter = UDFConverter(term, solver, isFoldUdf)
     resultingTerm = converter.visit(f)
 
-    debug("Substituted %s in UDF %s, got: %s, type = %s", term, f.name, resultingTerm, type(resultingTerm))
+    debug("Substituted %s in UDF %s (a fold UDF: %s), got: %s, type = %s", term, f.name, isFoldUdf, resultingTerm, type(resultingTerm))
 
     return resultingTerm
 
