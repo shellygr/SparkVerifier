@@ -1,6 +1,6 @@
 from z3 import *
 
-from SparkZ3.Simulator.WrapperClass import BoxedZ3IntVar
+
 #
 # f = Function('f', IntSort(), IntSort(), IntSort())
 # x, y = Ints('x y')
@@ -47,9 +47,11 @@ solver.add(sVal1==shrinked1)
 solver.add(sVal2==shrinked2)
 
 solver.add(Exists(x, Exists(y,
-                         ForAll([b, sVal1, sVal2],
+                         # ForAll([b, sVal1, sVal2],
+                        ForAll([b],
+                               And(sVal1==shrinked1,sVal2==shrinked2,
                                 Or(secondApp!=sVal1, # Try replacing shrinked with sVal
-                                        secondApp2!=sVal2)))))
+                                        secondApp2!=sVal2))))))
                                 # Or(secondApp!=shrinked1, # Try replacing shrinked with sVal
                                 #         secondApp2!=shrinked2)))))
 

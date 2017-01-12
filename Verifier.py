@@ -364,11 +364,13 @@ class Verifier:
 
         firstApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, foldResObj1.term), self.solver, True)
         secondApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (firstApp1, refreshed_for_secondapp_obj1.term), self.solver, True)
-        shrinked1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, refreshed_for_shrinked_obj1.term), self.solver, True)
+        shrinked1_formula_set = set()
+        shrinked1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, refreshed_for_shrinked_obj1.term), shrinked1_formula_set, True)
 
         firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term), self.solver, True)
         secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (firstApp2, refreshed_for_secondapp_obj2.term), self.solver, True)
-        shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), self.solver, True)
+        shrinked2_formula_set = set()
+        shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), shrinked2_formula_set, True)
         #
         # firstApp1 = self.make_vars(firstApp1)
         # secondApp1 = self.make_vars(secondApp1)
@@ -389,17 +391,27 @@ class Verifier:
         else:
             syncEquivalenceConjunction = And(secondApp1==shrinked1,secondApp2==shrinked2)
 
+        shrinked_definition_formulas = True
+        for formula in shrinked1_formula_set:
+            shrinked_definition_formulas = And(shrinked_definition_formulas, formula)
+
+        for formula in shrinked2_formula_set:
+            shrinked_definition_formulas = And(shrinked_definition_formulas, formula)
+
         # There is an assumption that secondApp1, secondApp2, shrinked1, shrinked2 are all BoxedZ3Int-s that we can refer to whose 'val' fields.
         # TODO: If those are tuples, include all elements. Also map all to val, and make sure all tuple elements are indeed such ints - if not, consider allocating "s" variables specialized for it.
         self.solver.push()
         formula = Exists(list(normalizeTuple(rep_var_sets1)),
                             Exists(list(normalizeTuple(rep_var_sets_refreshed1)),
-                                ForAll(list(normalizeTuple(rep_var_set_shrinked1)),#.union({secondApp1.get_val()}).union({secondApp2.get_val()}).union({shrinked1.get_val()}).union({shrinked2.get_val()})
-                                   Not(syncEquivalenceConjunction))))
+                                ForAll(list(normalizeTuple(rep_var_set_shrinked1)),#.union(normalizeTuple(rep_var_set_shrinked2))), #.union({shrinked1.get_val()}).union({shrinked2.get_val()})),#.union({secondApp1.get_val()}).union({secondApp2.get_val()}).union({shrinked1.get_val()}).union({shrinked2.get_val()})
+                                   And(shrinked_definition_formulas,
+                                   Not(syncEquivalenceConjunction)))))
         print "AggPair1Sync containment check formula:",formula
         self.solver.add(formula)
         result = solverResult(self.solver)
         self.solver.pop()
+
+        self.solver.add(shrinked_definition_formulas) # This is for some reason required, otherwise example 12 is entering an infinite loop / solver stuck?
 
         if result:
             debug("This example is AggPair1Sync")
