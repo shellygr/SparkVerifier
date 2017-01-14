@@ -2,7 +2,7 @@ import ast
 import inspect
 import operator
 from _ast import AST
-from z3 import If, And, Or, Not, Function, IntSort, BoolSort, Bool
+from z3 import If, And, Or, Not, Function, IntSort, BoolSort, Bool, simplify
 
 import Globals
 from RDDTools import gen_name
@@ -16,9 +16,10 @@ def getSource(f):
 
 
 class UDFConverter(ast.NodeVisitor):
-    def __init__(self, term, solver, isFoldUdf = False):
+    def __init__(self, term, formulas, var_defs, isFoldUdf = False):
         self.term = term
-        self.solver = solver
+        self.formulas = formulas
+        self.var_defs = var_defs
         self.env = {}
         self.isFoldUdf = isFoldUdf
 
@@ -60,9 +61,10 @@ class UDFConverter(ast.NodeVisitor):
             if isinstance(acc, ast.Num):
                 acc = self.visit(acc)
 
-            foldUdfResultFormula = If(is_any_bot, result_var == acc, result_var == result)
+            foldUdfResultFormula = simplify(If(is_any_bot, result_var == acc, result_var == result))
             debug("For fold UDF the result formula is %s", foldUdfResultFormula)
-            self.solver.add(foldUdfResultFormula)
+            self.formulas.add(foldUdfResultFormula)
+            self.var_defs[result_var.name] = foldUdfResultFormula
 
             return result_var
 
@@ -121,13 +123,16 @@ class UDFConverter(ast.NodeVisitor):
 
         if with_else:
             # formula = If(test == True, And(uVar.val == then, uVar.isBot == False), And(uVar.val == otherwise, uVar.isBot == False))
-            formula = If(test == True, uVar == then, uVar == otherwise)
+            formula = simplify(If(test == True, uVar == then, uVar == otherwise))
             debug("Formula added for if: %s", formula)
-            self.solver.add(formula)
+            self.formulas.add(formula)
+            # print simplify(formula)
+            self.var_defs[u] = formula
         else:
             # formula = If(test == True, And(uVar.val == then, uVar.isBot == False), uVar.isBot == True)
-            formula = If(test == True, uVar == then, uVar == bot)
-            self.solver.add(formula)
+            formula = simplify(If(test == True, uVar == then, uVar == bot))
+            self.formulas.add(formula)
+            self.var_defs[u] = formula
 
         return uVar
 
@@ -209,12 +214,12 @@ class UDFConverter(ast.NodeVisitor):
         return op(self.visit(node.operand))
 
 
-def substituteInFuncDec(f, term, solver, isFoldUdf = False):
+def substituteInFuncDec(f, term, formulas, var_defs = {}, isFoldUdf = False):
 
     debug("Original code %s", ast.dump(f))
 
     term = makeTuple(term)
-    converter = UDFConverter(term, solver, isFoldUdf)
+    converter = UDFConverter(term, formulas, var_defs, isFoldUdf)
     resultingTerm = converter.visit(f)
 
     debug("Substituted %s in UDF %s (a fold UDF: %s), got: %s, type = %s", term, f.name, isFoldUdf, resultingTerm, type(resultingTerm))

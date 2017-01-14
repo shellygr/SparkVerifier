@@ -1,5 +1,6 @@
 from z3 import *
 
+import Globals
 from RDDTools import gen_name
 
 
@@ -89,13 +90,17 @@ class BoxedZ3Int:
         return self.val
 
 def BoxedZ3IntVarNonBot(name):
-    return BoxedZ3Int(Int('%s.val'%name), BoolVal(False), name)
+    v = BoxedZ3Int(Int('%s.val'%name), BoolVal(False), name)
+    Globals.boxed_var_name_to_var[name] = v
+    return v
     # var = BoxedZ3IntVar(name)
     # solver.add(var.isBot==False)
     # return var
 
 def BoxedZ3IntVar(name):
-    return BoxedZ3Int(Int('%s.val' % name), Bool('%s.isBot' % name), name)
+    v = BoxedZ3Int(Int('%s.val' % name), Bool('%s.isBot' % name), name)
+    Globals.boxed_var_name_to_var[name] = v
+    return v
 
 def BoxedZ3IntVal(v):
     return BoxedZ3Int(IntVal(v), BoolVal(False), str(v))

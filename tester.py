@@ -86,7 +86,8 @@ test_dict = {
     16: (Tester(join.mapJoin, join.joinMap, rdd3, rdd4), "equivalent"),
     17: (Tester(join.slimMapValuesJoin, join.slimJoinMap, rdd3, rdd4), "equivalent"),
     18: (Tester(join.mapValuesJoin, join.joinMap, rdd3, rdd4), "Not equivalent"),
-    19: (Tester(join.filterJoin, join.joinThenFilter, rdd5, rdd6), "equivalent")
+    19: (Tester(join.filterJoin, join.joinThenFilter, rdd5, rdd6), "equivalent"),
+    20: (Tester(aggregateAndFilter.sumFilter1, aggregateAndFilter.sumFilter2, rdd), "equivalent")
 }
 
 def testAll():
@@ -98,8 +99,9 @@ def run_specific_test(idx):
 
 testAll()
 
+# run_specific_test(9)
 # run_specific_test(15)
-
+# run_specific_test(20)
 
 # Tester(discountTest1.isMinimumAtLeast100, discountTest1.newDiscountProgram, rdd), "equivalent"
 

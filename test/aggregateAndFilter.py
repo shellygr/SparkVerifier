@@ -79,6 +79,7 @@ def someBoolUninterp(x):
 def isEven(x):
     return x%2==0
 
+
 def countUdf((A,x)):
     return A+1
 
@@ -104,3 +105,19 @@ def aggregateMap(rdd):
     sum = rddMap.fold(0, sumUdf)
 
     return sum
+
+
+
+def isValAtLeastZero(v):
+    return v >= 0
+
+def isValNonNegative(v):
+    return v > -1
+
+def sumFilter1(rdd):
+    r2 = rdd.filter(isValAtLeastZero)
+    return r2.fold(0,sumUdf)
+
+def sumFilter2(rdd):
+    r2 = rdd.filter(isValNonNegative)
+    return r2.fold(0,sumUdf)
