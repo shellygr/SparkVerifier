@@ -1,12 +1,12 @@
 
 
-def min((A, x)):
+def min(A, x):
     if x<A:
         return x
     else:
         return A
 
-def max((A, x)):
+def max(A, x):
     if x>A:
         return x
     else:

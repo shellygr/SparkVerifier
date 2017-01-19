@@ -97,7 +97,7 @@ def testAll():
 def run_specific_test(idx):
     test(*test_dict[idx])
 
-testAll()
+# testAll()
 
 # run_specific_test(9)
 # run_specific_test(15)
@@ -133,15 +133,18 @@ testAll()
 
 # BY KEY
 #
-test(
-Tester(byKey1.sum1, byKey1.sum2, rdd3), "equivalent"
-)
+# test(
+# Tester(byKey1.sum1, byKey1.sum2, rdd3), "equivalent"
+# )
+#
+# test(
+# Tester(byKey1.directSum, byKey1.sumByMap, rdd3), "equivalent"
+# )
+#
+# test(
+# Tester(byKey2.program1, byKey2.program3, r_prices, r_costs, r_sales), "Not equivalent"
+# )
 
 test(
-Tester(byKey1.directSum, byKey1.sumByMap, rdd3), "equivalent"
+Tester(byKey2.program1outerJoin, byKey2.program3, r_prices, r_costs, r_sales), "equivalent"
 )
-
-test(
-Tester(byKey2.program1, byKey2.program3, r_prices, r_costs, r_sales), "equivalent"
-)
-

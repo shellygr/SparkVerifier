@@ -51,7 +51,7 @@ def takeMaximumByMinimum(rdd):
 def keyToSum((k,v)):
     return (k, k+v)
 
-def sumAll((A, v)):
+def sumAll(A, v):
     return A+v
 
 def directSum(rdd):
@@ -62,7 +62,7 @@ def directSum(rdd):
 def keyToTuple((k,v)):
     return (k, (k, v))
 
-def sumTuple((A, (k,v))):
+def sumTuple(A, (k,v)):
     return A+k+v
 
 def sumByMap(rdd):

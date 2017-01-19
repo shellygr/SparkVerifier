@@ -80,7 +80,7 @@ def isEven(x):
     return x%2==0
 
 
-def countUdf((A,x)):
+def countUdf(A,x):
     return A+1
 
 def aggregateFiltered(rdd):
@@ -96,7 +96,7 @@ def filteringMap(x):
     else:
         return 0
 
-def sumUdf((A,x)):
+def sumUdf(A,x):
     return A+x
 
 def aggregateMap(rdd):

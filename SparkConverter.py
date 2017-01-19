@@ -9,7 +9,7 @@ from FoldResult import FoldResult
 from RDDTools import gen_name
 from SolverTools import makeTuple, normalizeTuple
 from UDFParser import substituteInFuncDec
-from WrapperClass import bot, BoxedZ3IntVar, Bot, BoxedZ3Int
+from WrapperClass import bot, BoxedZ3IntVar, Bot, BoxedZ3Int, BoxedZ3IntVarNonBot
 from tools import debug
 
 
@@ -72,7 +72,7 @@ class SparkConverter(ast.NodeVisitor):
         return self.env[node.id]
 
     def visit_Call(self, node):
-        # Func is an attribute if it is an RDD operation, and name if it's a simple call.
+        # Func is an attribute if it is an RDD operation, and name if it's a simple call (for primitives, not for RDDs!).
         if isinstance(node.func, ast.Name):
             def create_call_vars(callResult, result_arity):
                 call_vars = ()
@@ -95,7 +95,7 @@ class SparkConverter(ast.NodeVisitor):
             eval_args = map(getTermAndFoldLevel, node.args)
             maxFoldLevel = max([subtuple[1] for subtuple in eval_args])
             flattened_args = tuple([item for subtuple in eval_args for item in subtuple[0]])
-            result = substituteInFuncDec(Globals.funcs[op_name], flattened_args, self.formulas, self.var_defs)
+            result = substituteInFuncDec(Globals.funcs[op_name], flattened_args, self.formulas, self.var_defs, self.var_dependency)
             result = makeTuple(result)
 
             callResult = CallResult(op_name, flattened_args)
@@ -112,7 +112,7 @@ class SparkConverter(ast.NodeVisitor):
             udf = node.args[0] # Should be Name node for UDF
             udf_arg, udf_arg_arity = first_rdd, first_rdd_arity
 
-            result = substituteInFuncDec(Globals.funcs[udf.id], udf_arg, self.formulas, self.var_defs)
+            result = substituteInFuncDec(Globals.funcs[udf.id], udf_arg, self.formulas, self.var_defs, self.var_dependency)
 
             result = makeTuple(result)
 
@@ -126,7 +126,7 @@ class SparkConverter(ast.NodeVisitor):
             udf = node.args[0] # Should be Name node for UDF
             udf_arg, udf_arg_arity = makeTuple(first_rdd), first_rdd_arity
 
-            result = substituteInFuncDec(Globals.funcs[udf.id], udf_arg, self.formulas, self.var_defs) # Result is a boolean variable
+            result = substituteInFuncDec(Globals.funcs[udf.id], udf_arg, self.formulas, self.var_defs, self.var_dependency) # Result is a boolean variable
 
             out_vars = ()
             then = True
@@ -136,11 +136,32 @@ class SparkConverter(ast.NodeVisitor):
                 if isinstance(udf_arg[i], tuple):
                     sub_out_vars = ()
                     for j in range(0, len(udf_arg[i])):
-                        out_var = BoxedZ3IntVar(gen_name(base_name+"_"))
-                        self.var_dependency[out_var.name] = normalizeTuple(udf_arg[i][j])
-                        sub_out_vars += (out_var,)
-                        then = And(then, out_var == normalizeTuple(udf_arg[i][j]))
-                        otherwise = And(otherwise, out_var == Bot())
+                        if isinstance(udf_arg[i][j], tuple):
+                            sub_sub_out_vars = ()
+                            for k in range(0, len(udf_arg[i][j])):
+                                if isinstance(udf_arg[i][j][k], tuple):
+                                    sub_sub_sub_out_vars = ()
+                                    for l in range(0, len(udf_arg[i][j][k])):
+                                        out_var = BoxedZ3IntVar(gen_name(base_name + "_"))
+                                        self.var_dependency[out_var.name] = normalizeTuple(udf_arg[i][j][k][l])
+                                        sub_sub_sub_out_vars += (out_var,)
+                                        then = And(then, out_var == normalizeTuple(udf_arg[i][j][k][l]))
+                                        otherwise = And(otherwise, out_var == Bot())
+
+                                    sub_sub_out_vars += (sub_sub_sub_out_vars,)
+                                else:
+                                    out_var = BoxedZ3IntVar(gen_name(base_name + "_"))
+                                    self.var_dependency[out_var.name] = normalizeTuple(udf_arg[i][j][k])
+                                    sub_sub_out_vars += (out_var,)
+                                    then = And(then, out_var == normalizeTuple(udf_arg[i][j][k]))
+                                    otherwise = And(otherwise, out_var == Bot())
+                            sub_out_vars += (sub_sub_out_vars,)
+                        else:
+                            out_var = BoxedZ3IntVar(gen_name(base_name+"_"))
+                            self.var_dependency[out_var.name] = normalizeTuple(udf_arg[i][j])
+                            sub_out_vars += (out_var,)
+                            then = And(then, out_var == normalizeTuple(udf_arg[i][j]))
+                            otherwise = And(otherwise, out_var == Bot())
                     out_vars += (sub_out_vars,)
                 else:
                     out_var = BoxedZ3IntVar(base_name)
@@ -156,7 +177,15 @@ class SparkConverter(ast.NodeVisitor):
             for out_var in out_vars:
                 if isinstance(out_var, tuple):
                     for sub_out_var in out_var:
-                        self.var_defs[normalizeTuple(sub_out_var).name] = ite
+                        if isinstance(sub_out_var, tuple):
+                            for sub_sub_out_var in sub_out_var:
+                                if isinstance(sub_sub_out_var, tuple):
+                                    for sub_sub_sub_out_var in sub_sub_out_var:
+                                        self.var_defs[normalizeTuple(sub_sub_sub_out_var).name] = ite
+                                else:
+                                    self.var_defs[normalizeTuple(sub_sub_out_var).name] = ite
+                        else:
+                            self.var_defs[normalizeTuple(sub_out_var).name] = ite
                 else:
                     self.var_defs[normalizeTuple(out_var).name] = ite
             return out_vars, udf_arg_arity, first_rdd_vars, first_rdd_fold_level
@@ -172,30 +201,98 @@ class SparkConverter(ast.NodeVisitor):
             # if any of the elements is bot, need to bot the whole resulting term. So need to allocate new vars
             out_vars1 = ()
             for i in range(0, first_term_arity):
-                out_var = BoxedZ3IntVar(gen_name("c"))
-                self.var_dependency[out_var.name] = first_rdd_term[i]
+                if isinstance(first_rdd_term[i], tuple):
+                    out_var = ()
+                    for j in range(len(first_rdd_term[i])):
+                        if isinstance(first_rdd_term[i][j], tuple):
+                            sub_out_var = ()
+                            for k in range(len(first_rdd_term[i][j])):
+                                if isinstance(first_rdd_term[i][j][k], tuple):
+                                    sub_sub_out_var = ()
+                                    for l in range(len(first_rdd_term[i][j][k])):
+                                        sub_sub_sub_out_var = BoxedZ3IntVar(gen_name("c"))
+                                        self.var_dependency[sub_sub_sub_out_var.name] = first_rdd_term[i][j][k][l]
+                                        sub_sub_out_var += (sub_sub_sub_out_var,)
+                                else:
+                                    sub_sub_out_var = BoxedZ3IntVar(gen_name("c"))
+                                    self.var_dependency[sub_sub_out_var.name] = first_rdd_term[i][j][k]
+                                    sub_out_var += (sub_sub_out_var,)
+                        else:
+                            sub_out_var = BoxedZ3IntVar(gen_name("c"))
+                            self.var_dependency[sub_out_var.name] = first_rdd_term[i][j]
+                        out_var += (sub_out_var,)
+                else:
+                    out_var = BoxedZ3IntVar(gen_name("c"))
+                    self.var_dependency[out_var.name] = first_rdd_term[i]
+
                 out_vars1 += (out_var, )
 
             out_vars2 = ()
             for i in range(0, other_term_arity):
-                out_var = BoxedZ3IntVar(gen_name("c'"))
-                self.var_dependency[out_var.name] = other_rdd_term[i]
+                if isinstance(other_rdd_term[i], tuple):
+                    out_var = ()
+                    for j in range(len(other_rdd_term[i])):
+                        if isinstance(other_rdd_term[i][j], tuple):
+                            sub_out_var = ()
+                            for k in range(len(other_rdd_term[i][j])):
+                                sub_sub_out_var = BoxedZ3IntVar(gen_name("c"))
+                                self.var_dependency[sub_sub_out_var.name] = other_rdd_term[i][j][k]
+                                sub_out_var += (sub_sub_out_var,)
+                        else:
+                            sub_out_var = BoxedZ3IntVar(gen_name("c'"))
+                            self.var_dependency[sub_out_var.name] = other_rdd_term[i][j]
+                        out_var += (sub_out_var,)
+                else:
+                    out_var = BoxedZ3IntVar(gen_name("c'"))
+                    self.var_dependency[out_var.name] = other_rdd_term[i]
+
                 out_vars2 += (out_var, )
 
             # Calculate the condition if there are any bots in the cartesian product
             isAnyBot = False
             for t in first_rdd_term + other_rdd_term:
-                isAnyBot = Or(isAnyBot, Bot() == t)
+                if isinstance(t, tuple):
+                    for sub_t in t:
+                        if isinstance(sub_t, tuple):
+                            for sub_sub_t in sub_t:
+                                if isinstance(sub_sub_t, tuple):
+                                    for sub_sub_sub_t in sub_sub_t:
+                                        isAnyBot = Or(isAnyBot, Bot() == normalizeTuple(sub_sub_sub_t))
+                                else:
+                                    isAnyBot = Or(isAnyBot, Bot() == normalizeTuple(sub_sub_t))
+                        else:
+                            isAnyBot = Or(isAnyBot, Bot() == normalizeTuple(sub_t))
+                else:
+                    isAnyBot = Or(isAnyBot, Bot() == t)
 
-            debug("Is any of the terms a bottom? %s", isAnyBot)
+
+            debug("Is any of the terms a bottom in %s + %s ? %s", first_rdd_term, other_rdd_term, isAnyBot)
 
             # Now we set the out_vars properly by adding the condition that if any of the participating elements in the cartesian is bot, then all are bot
             formulaString = ""
             for (orig_t, out_t) in list(zip(first_rdd_term, out_vars1)) + list(zip(other_rdd_term, out_vars2)):
-                formula = If(isAnyBot, out_t == Bot(), out_t == orig_t)
-                formulaString = formulaString + " AND " + str(formula)
-                self.formulas.add(formula)
-                self.var_defs[out_t.name] = formula
+                if isinstance(orig_t, tuple):
+                    for sub_orig, sub_out in zip(orig_t,out_t):
+                        if isinstance(sub_orig, tuple):
+                            for sub_sub_orig,sub_sub_out in zip(sub_orig,sub_out):
+                                formula = If(isAnyBot, normalizeTuple(sub_sub_out) == Bot(), normalizeTuple(sub_sub_out) == normalizeTuple(sub_sub_orig))
+                                self.var_defs[sub_sub_out.name] = formula
+
+                                formulaString = formulaString + " AND " + str(formula)
+                                self.formulas.add(formula)
+                        else:
+                            formula = If(isAnyBot, normalizeTuple(sub_out) == Bot(), normalizeTuple(sub_out) == normalizeTuple(sub_orig))
+                            self.var_defs[sub_out.name] = formula
+
+                            formulaString = formulaString + " AND " + str(formula)
+                            self.formulas.add(formula)
+                else:
+                    formula = If(isAnyBot, out_t == Bot(), out_t == orig_t)
+                    self.var_defs[out_t.name] = formula
+
+                    formulaString = formulaString + " AND " + str(formula)
+                    self.formulas.add(formula)
+
 
             result = (out_vars1, out_vars2)
 
@@ -211,7 +308,7 @@ class SparkConverter(ast.NodeVisitor):
             name_base = gen_name("f")
             self.foldResults[name_base] = foldResult
             for i in range(0, result_arity):
-                fold_var = BoxedZ3IntVar(gen_name(name_base+"_"))
+                fold_var = BoxedZ3IntVarNonBot(gen_name(name_base+"_"))
                 self.var_dependency[fold_var.name] = foldResult.vars
                 self.foldResults[fold_var.name] = foldResult
                 fold_vars += (fold_var, )
@@ -256,13 +353,14 @@ class SparkConverter(ast.NodeVisitor):
             self.var_dependency[key_var.name] = rdd_term[0]
             # TODO: Set key_var to be unique, with rdd_term[0]'s value
             # TODO: Note key_var cannot be a tuple
-            result = (rdd_term[0], fold_vars)
+            result = (rdd_term[0], normalizeTuple(fold_vars))
 
             return result, 1 + 1, {key_var}, first_rdd_fold_level+1 # 1 for key + 1 for value because even if folded value is a tuple, we address it as a single value and UDFs for map/filter will have to be smart enough to know it
 
         return None, None
 
 
+    # Needs to return a set
     def find_rep_vars_for_expr(self, e):
         if not isinstance(e, BoxedZ3Int):
             #raise Exception("Expected a BoxedZ3Int to find rep vars")
@@ -274,6 +372,7 @@ class SparkConverter(ast.NodeVisitor):
         loopOn = e
         while True:
             candidate = self.var_dependency[loopOn.name]
+
             if not isinstance(candidate, BoxedZ3Int) or candidate.name[0] == "x":
                 return candidate
 

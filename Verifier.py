@@ -1,6 +1,7 @@
 import ast
 import inspect
-from z3 import Solver, sat, unsat, And, Implies, Not, Exists, ForAll, simplify, BoolRef, BoolVal, is_const, is_false
+from z3 import Solver, sat, unsat, And, Implies, Not, Exists, ForAll, simplify, BoolRef, BoolVal, is_const, is_false, \
+    set_option
 
 import CallResult
 import FoldResult
@@ -226,14 +227,14 @@ class Verifier:
                                                                           refreshed_ctx_for_secondapp2)
 
         firstApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, foldResObj1.term),
-                                        self.solver, {}, True)
+                                        self.solver, {}, {}, True)
         secondApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id],
-                                         (firstApp1, refreshed_for_secondapp_obj1.term), self.solver, {}, True)
+                                         (firstApp1, refreshed_for_secondapp_obj1.term), self.solver, {}, {}, True)
 
         firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term),
-                                        self.solver, {}, True)
+                                        self.solver, {}, {}, True)
         secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id],
-                                         (firstApp2, refreshed_for_secondapp_obj2.term), self.solver, {}, True)
+                                         (firstApp2, refreshed_for_secondapp_obj2.term), self.solver, {}, {}, True)
 
         if call_func1:
             initsInCall1 = substituteInFuncDec(Globals.funcs[call_func1], inits1, self.solver, {})
@@ -378,20 +379,20 @@ class Verifier:
         refreshed_for_shrinked_obj2 = self.from_boxed_var_to_complex_obj(refreshed_fold_for_shrink2, refreshed_ctx_for_shrinked2)
 
         firstApp1_formula_set = set()
-        firstApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, foldResObj1.term), firstApp1_formula_set, programCtx1.var_defs, True)
+        firstApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, foldResObj1.term), firstApp1_formula_set, programCtx1.var_defs, {}, True)
         secondApp1_formula_set = set()
-        secondApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (firstApp1, refreshed_for_secondapp_obj1.term), secondApp1_formula_set, programCtx1.var_defs, True)
+        secondApp1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (firstApp1, refreshed_for_secondapp_obj1.term), secondApp1_formula_set, programCtx1.var_defs, {}, True)
         shrinked1_formula_set = set()
         shrinked_defs1 = {}
-        shrinked1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, refreshed_for_shrinked_obj1.term), shrinked1_formula_set, shrinked_defs1, True)
+        shrinked1 = substituteInFuncDec(Globals.funcs[foldResObj1.udf.id], (foldResObj1.init, refreshed_for_shrinked_obj1.term), shrinked1_formula_set, shrinked_defs1, {}, True)
 
         firstApp2_formula_set = set()
-        firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term), firstApp2_formula_set, programCtx2.var_defs, True)
+        firstApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, foldResObj2.term), firstApp2_formula_set, programCtx2.var_defs, {}, True)
         secondApp2_formula_set = set()
-        secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (firstApp2, refreshed_for_secondapp_obj2.term), secondApp2_formula_set, programCtx2.var_defs, True)
+        secondApp2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (firstApp2, refreshed_for_secondapp_obj2.term), secondApp2_formula_set, programCtx2.var_defs, {}, True)
         shrinked2_formula_set = set()
         shrinked_defs2 = {}
-        shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), shrinked2_formula_set, shrinked_defs2, True)
+        shrinked2 = substituteInFuncDec(Globals.funcs[foldResObj2.udf.id], (foldResObj2.init, refreshed_for_shrinked_obj2.term), shrinked2_formula_set, shrinked_defs2, {}, True)
         #
         # firstApp1 = self.make_vars(firstApp1)
         # secondApp1 = self.make_vars(secondApp1)
@@ -495,7 +496,7 @@ class Verifier:
 
             intermediate_var = BoxedZ3IntVarNonBot(gen_name("intermediate"))
             advanced_var = substituteInFuncDec(Globals.funcs[foldResult.udf.id],
-                                               (intermediate_var, foldResult.term), formulas, var_defs, True)
+                                               (intermediate_var, foldResult.term), formulas, var_defs, {}, True)
 
             intermediate_vars += (intermediate_var,)
             advanced_vars += (advanced_var,)
@@ -603,7 +604,8 @@ class Verifier:
 
 
 def solverResult(solver):
-    debug("Solver: %s", solver)
+    set_option(max_lines=2000, max_depth=1000000, max_args=100000)
+    # debug("Solver: %s", solver)
     # Solve - if UNSAT, equivalent.
     result = solver.check()
     # debug("%s",solver.sexpr())

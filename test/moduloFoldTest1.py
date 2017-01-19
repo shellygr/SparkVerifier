@@ -28,10 +28,10 @@ def discountReverse(x):
 def mod5(x):
     return x%5
 
-def sumMod5((A,x)):
+def sumMod5(A,x):
     return mod5(A+x)
 
-def simpleSum((A,x)):
+def simpleSum(A,x):
     return A+x
 
 def triple(x):
