@@ -87,7 +87,10 @@ test_dict = {
     17: (Tester(join.slimMapValuesJoin, join.slimJoinMap, rdd3, rdd4), "equivalent"),
     18: (Tester(join.mapValuesJoin, join.joinMap, rdd3, rdd4), "Not equivalent"),
     19: (Tester(join.filterJoin, join.joinThenFilter, rdd5, rdd6), "equivalent"),
-    20: (Tester(aggregateAndFilter.sumFilter1, aggregateAndFilter.sumFilter2, rdd), "equivalent")
+    20: (Tester(aggregateAndFilter.sumFilter1, aggregateAndFilter.sumFilter2, rdd), "equivalent"),
+    21: (Tester(byKey1.sum1, byKey1.sum2, rdd3), "equivalent"),
+    22: (Tester(byKey1.directSum, byKey1.sumByMap, rdd3), "equivalent"),
+    23: (Tester(byKey2.program1, byKey2.program3, r_prices, r_costs, r_sales), "Not equivalent")
 }
 
 def testAll():
@@ -97,9 +100,11 @@ def testAll():
 def run_specific_test(idx):
     test(*test_dict[idx])
 
-# testAll()
+testAll()
 
 # run_specific_test(9)
+# run_specific_test(10)
+# run_specific_test(11)
 # run_specific_test(15)
 # run_specific_test(20)
 
@@ -132,18 +137,7 @@ def run_specific_test(idx):
 
 
 # BY KEY
-#
-# test(
-# Tester(byKey1.sum1, byKey1.sum2, rdd3), "equivalent"
-# )
-#
-# test(
-# Tester(byKey1.directSum, byKey1.sumByMap, rdd3), "equivalent"
-# )
-#
-# test(
-# Tester(byKey2.program1, byKey2.program3, r_prices, r_costs, r_sales), "Not equivalent"
-# )
+
 
 test(
 Tester(byKey2.program1outerJoin, byKey2.program3, r_prices, r_costs, r_sales), "equivalent"

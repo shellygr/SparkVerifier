@@ -155,8 +155,11 @@ def countForDate(A, date):
     else:
         return False
 
+def mult(folded, multiplier):
+    return folded*multiplier
+
 def p3Map((prod, (((countAll, price), cost), (countToday, )))):
-    return (prod, (countToday*price, countAll*(price-cost))) # Need to replace with apply action
+    return (prod, (mult(countToday,price), mult(countAll,(price-cost)))) # Need to replace with apply action
 
 def program3real(rp, rc, rs):
     r_counts_sales = rs.foldByKey(0, count)

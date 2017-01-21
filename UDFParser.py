@@ -2,12 +2,13 @@ import ast
 import inspect
 import operator
 from _ast import AST
-from z3 import If, And, Or, Not, Function, IntSort, BoolSort, Bool, simplify
+from z3 import If, And, Or, Not, Function, IntSort, BoolSort, Bool, simplify, is_bool
 
 import Globals
 from RDDTools import gen_name
 from SolverTools import normalizeTuple, makeTuple
-from WrapperClass import _to_BoxedZ3Int, BoxedZ3Int, BoxedZ3IntVar, bot, Bot, BoxedZ3IntVarNonBot
+from WrapperClass import _to_BoxedZ3Int, BoxedZ3Int, BoxedZ3IntVar, bot, Bot, BoxedZ3IntVarNonBot, BoxedZ3Bool, \
+    BoxedZ3BoolVar
 from tools import debug
 
 
@@ -130,7 +131,8 @@ class UDFConverter(ast.NodeVisitor):
         # Backup environment
         backupEnv = {}
         for arg,idx in zip(func.args.args, range(0,len(func.args.args))):
-            backupEnv[arg.id] = self.env[arg.id]
+            if arg.id in self.env:
+                backupEnv[arg.id] = self.env[arg.id]
             self.env[arg.id] = self.visit(node.args[idx])
 
         for line in func.body:
@@ -140,8 +142,21 @@ class UDFConverter(ast.NodeVisitor):
         for arg_name in backupEnv:
             self.env[arg_name] = backupEnv[arg_name]
 
-        return result
+        call_name = gen_name("call")
 
+        if is_bool(result):
+            call_var = BoxedZ3BoolVar(call_name)
+        else:
+            call_var = BoxedZ3IntVar(call_name)
+
+        formula = call_var==result
+        self.formulas.add(formula)
+        self.var_deps[call_name] = {self.term}
+        self.var_defs[call_name] = formula
+
+        return call_var
+
+        # return result
 
     def visit_Name(self, node):
         if node.id == "True":

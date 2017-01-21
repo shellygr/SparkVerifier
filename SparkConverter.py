@@ -74,14 +74,14 @@ class SparkConverter(ast.NodeVisitor):
     def visit_Call(self, node):
         # Func is an attribute if it is an RDD operation, and name if it's a simple call (for primitives, not for RDDs!).
         if isinstance(node.func, ast.Name):
-            def create_call_vars(callResult, result_arity):
+            def create_call_vars(callResult, result_arity, additional_dependency=set()):
                 call_vars = ()
                 name_base = gen_name("c")
                 self.callResults[name_base] = callResult
                 for i in range(0, result_arity):
-                    derived_name = gen_name(name_base)
+                    derived_name = gen_name(name_base+"_")
                     call_var = BoxedZ3IntVar(derived_name)
-                    self.var_dependency[derived_name] = callResult.args
+                    self.var_dependency[derived_name] = additional_dependency.union(callResult.args)
                     self.callResults[derived_name] = callResult
                     call_vars += (call_var,)
 
@@ -100,7 +100,7 @@ class SparkConverter(ast.NodeVisitor):
 
             callResult = CallResult(op_name, flattened_args)
             result_arity = len(result)
-            call_vars = create_call_vars(callResult, result_arity)
+            call_vars = create_call_vars(callResult, result_arity,{normalizeTuple(result)})
 
             return call_vars, len(result), {}, maxFoldLevel
 

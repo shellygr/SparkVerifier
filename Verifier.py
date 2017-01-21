@@ -106,10 +106,10 @@ class Verifier:
                debug("Comparing %s and %s (index %d)", e1, e2, element_index)
 
                def is_fold(e, sc):
-                   if not isinstance(e, BoxedZ3Int):
+                   if not isinstance(e, BoxedZ3Int) or '*' in e.name or '+' in e.name or '-' in e.name:
                        return False
                    foldAndCallCtx = self.getFoldAndCallCtx(sc)
-                   return e.name in foldAndCallCtx
+                   return e.name in foldAndCallCtx or is_fold(sc.var_dependency[e.name],sc)
 
                if is_fold(normalizeTuple(e1), sc1) and is_fold(normalizeTuple(e2), sc2):
                    are_equivalent = self.verifyEquivalentFolds(normalizeTuple(e1), normalizeTuple(e2), sc1, sc2, element_index)
@@ -122,7 +122,10 @@ class Verifier:
                    if isinstance(e1, tuple):
                        for e1b, e2b, element_index_b in zip(e1, e2, range(0,len(e1))):
                            debug("Comparing %s and %s (index %d)", e1b, e2b, element_index_b)
-                           are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1b), normalizeTuple(e2b), element_index_b)
+                           if is_fold(normalizeTuple(e1b),sc1) and is_fold(normalizeTuple(e2b), sc2):
+                               are_equivalent = self.verifyEquivalentFolds(normalizeTuple(e1b), normalizeTuple(e2b), sc1, sc2, element_index_b)
+                           else:
+                               are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1b), normalizeTuple(e2b), element_index_b)
 
                            if are_equivalent == False:
                                return False
@@ -437,16 +440,27 @@ class Verifier:
                             Exists(list(set(normalizeTuple(rep_var_sets_refreshed1)).difference({refreshed_for_secondapp_obj1.key_vars})),
                                 ForAll(list(set(normalizeTuple(rep_var_set_shrinked1))
                                             .union(set(map(lambda x: Globals.boxed_var_name_to_var[x].val, var_defs_shrinked1.keys())))
-                                            .union(set(filter(lambda x: not isinstance(x, BoolRef) or not is_false(x),
+                                            .union(set(filter(lambda x: not is_false(x),
                                                               map(lambda x: Globals.boxed_var_name_to_var[x].isBot, var_defs_shrinked1.keys()))))
                                             .union(set(map(lambda x: Globals.boxed_var_name_to_var[x].val, shrinked_defs1.keys())))
-                                            .union(set(filter(lambda x: not isinstance(x, BoolRef) or not is_false(x),
+                                            .union(set(filter(lambda x: not is_false(x),
                                                               map(lambda x: Globals.boxed_var_name_to_var[x].isBot, shrinked_defs1.keys()))))
                                             .union(set(map(lambda x: Globals.boxed_var_name_to_var[x].val, shrinked_defs2.keys())))
-                                            .union(set(filter(lambda x: not isinstance(x, BoolRef) or not is_false(x),
+                                            .union(set(filter(lambda x: not is_false(x),
                                                               map(lambda x: Globals.boxed_var_name_to_var[x].isBot,
                                                                   shrinked_defs2.keys()))))
-                                            # .union(var_deps_shrinked2.keys())
+                                            .union(set(filter(lambda x: not is_false(x),
+                                                              map(lambda x: Globals.boxed_var_name_to_var[x].val,
+                                                                  var_deps_shrinked1.keys()))))
+                                            .union(set(filter(lambda x: not is_false(x),
+                                                              map(lambda x: Globals.boxed_var_name_to_var[x].val,
+                                                                  var_deps_shrinked2.keys()))))
+                                            .union(set(filter(lambda x: not is_false(x),
+                                                              map(lambda x: Globals.boxed_var_name_to_var[x].isBot,
+                                                                  var_deps_shrinked1.keys()))))
+                                            .union(set(filter(lambda x: not is_false(x),
+                                                              map(lambda x: Globals.boxed_var_name_to_var[x].isBot,
+                                                                  var_deps_shrinked2.keys()))))
                                             .difference({refreshed_for_shrinked_obj1.key_vars})),#.union(normalizeTuple(rep_var_set_shrinked2))), #.union({shrinked1.get_val()}).union({shrinked2.get_val()})),#.union({secondApp1.get_val()}).union({secondApp2.get_val()}).union({shrinked1.get_val()}).union({shrinked2.get_val()})
                                    Implies(And(simplify(conjunctOfAll(formulas_shrinked1, formulas_shrinked2, shrinked1_formula_set, shrinked2_formula_set)),
                                                 keys_are_equal),

@@ -3,6 +3,48 @@ from z3 import *
 import Globals
 from RDDTools import gen_name
 
+class BoxedZ3Bool:
+    def __init__(self, val, isBot, name):
+        self.val = val
+        self.isBot = isBot
+        self.name = name
+
+    def __eq__(self, other):
+        if other == None:
+            return False
+        other = _to_BoxedZ3Bool(other)
+        return Or(And(self.isBot, other.isBot), And(Not(self.isBot), Not(other.isBot), self.val == other.val))
+
+    def __ne__(self, other):
+        return Not(self.__eq__(other))
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    def __len__(self):
+        return 1
+
+    # dict key support
+    def __hash__(self):
+        return hash((self.name))
+
+    def myvars(self):
+        return set({self.val, self.isBot})
+
+    def get_val(self):
+        return self.val
+
+def BoxedZ3BoolVar(name):
+    v = BoxedZ3Bool(Bool('%s.val' % name), BoolVal(False),  name)
+    Globals.boxed_var_name_to_var[name] = v
+    return v
+
+def BoxedZ3BoolVal(v):
+    return BoxedZ3Bool(BoolVal(v), BoolVal(False), str(v))
+
 
 class BoxedZ3Int:
     def __init__(self, val, isBot, name):
@@ -115,6 +157,16 @@ def _to_BoxedZ3Int(v):
         return BoxedZ3Int(v, BoolVal(False), str(v))
     else:
         return BoxedZ3IntVal(v)
+
+
+def _to_BoxedZ3Bool(v):
+    if isinstance(v, BoxedZ3Bool):
+        return v
+    elif isinstance(v, BoolRef):
+        return BoxedZ3Bool(v, BoolVal(False), str(v))
+    else:
+        return BoxedZ3BoolVal(v)
+
 
 BoxedInt = Datatype("BoxedInt")
 BoxedInt.declare('bot')
