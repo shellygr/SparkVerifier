@@ -143,7 +143,7 @@ class UDFConverter(ast.NodeVisitor):
             self.env[arg_name] = backupEnv[arg_name]
 
         call_name = gen_name("call")
-
+        debug("Call result: %s == %s, from args %s", call_name, result,  set(map(lambda x: self.visit(x), func.args.args)))
         if is_bool(result):
             call_var = BoxedZ3BoolVar(call_name)
         else:
@@ -151,7 +151,7 @@ class UDFConverter(ast.NodeVisitor):
 
         formula = call_var==result
         self.formulas.add(formula)
-        self.var_deps[call_name] = {self.term}
+        self.var_deps[call_name] = set(map(lambda x: self.visit(x), func.args.args))
         self.var_defs[call_name] = formula
 
         return call_var

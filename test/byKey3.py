@@ -146,7 +146,7 @@ def program1outerJoin(rp, rc, rs):
     return r_revenue.cartesian(r_earnings_today).filter(outerJoinFilterForPairs).map(postJoinMap) # join(r_earnings_today, r_revenue)
 
 
-def count((A, x)):
+def count(A, x):
     return A+1
 
 def countForDate(A, date):
@@ -209,3 +209,30 @@ def program6(rp, rs):
     rsbk = rs.foldByKey(0, sumSecond)
     rp_rsbk_join = rp.cartesian(rsbk).filter(joinFilterForPairs).map(postJoinMap)
     return rp_rsbk_join
+
+def mod10(x):
+    return x/10
+
+def invert_to_class((s,g)):
+    return (mod10(g), s)
+
+def passed_class((grade_class,count)):
+    return grade_class >= 6
+
+def students_who_passed((s,g)):
+    return g >= 60
+
+def only_positive_grades((s,g)):
+    return g >= 0
+
+def program1(rg):
+    # rg_positive_grades = rg.filter(only_positive_grades)
+    rg_invert = rg.map(invert_to_class)
+    rg_histogram = rg_invert.foldByKey(0, count)
+    return rg_histogram.filter(passed_class)
+
+def program2(rg):
+    # rg_positive_grades = rg.filter(only_positive_grades)
+    rg_passed = rg.filter(students_who_passed)
+    rg_passed_invert = rg_passed.map(invert_to_class)
+    return rg_passed_invert.foldByKey(0, count)

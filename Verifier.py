@@ -10,7 +10,7 @@ from RDDTools import gen_name
 from SolverTools import normalizeTuple
 from SparkConverter import SparkConverter
 from UDFParser import getSource, substituteInFuncDec
-from WrapperClass import BoxedZ3IntVarNonBot, BoxedZ3Int, BoxedZ3IntVar, BoxedZ3IntVal
+from WrapperClass import BoxedZ3IntVarNonBot, BoxedZ3Int, BoxedZ3IntVar, BoxedZ3IntVal, bot, Bot
 from tools import debug
 
 class FuncDbBuilder(ast.NodeVisitor):
@@ -83,6 +83,31 @@ class Verifier:
 
         return self.verify(result1, result2)
 
+    def is_fold(self, e, sc):
+        foldAndCallCtx = self.getFoldAndCallCtx(sc)
+
+        if (not isinstance(e, BoxedZ3Int) and not isinstance(e, set)) or (
+            isinstance(e, BoxedZ3Int) and ('*' in e.name or '+' in e.name or '-' in e.name)):
+                return False, None
+        if isinstance(e, set):
+            is_fold_result = False
+            for elm in e:
+                is_fold_result, candidate = self.is_fold(elm, sc)
+                if is_fold_result:
+                    sc.foldResults[elm.name] = candidate
+                    return is_fold_result, candidate
+
+            return is_fold_result, None
+                # return any(map(lambda x: is_fold(x, sc)[0], e))
+
+        if e.name in foldAndCallCtx:
+            return True, foldAndCallCtx[e.name]
+
+        is_fold_result, fold = self.is_fold(sc.var_dependency[e.name], sc)
+        if is_fold_result:
+            sc.foldResults[e.name] = fold
+        return is_fold_result, fold
+
     def verify(self, sc1, sc2):
 
         print "Comparing ", sc1.ret, sc2.ret
@@ -105,13 +130,7 @@ class Verifier:
            for e1, e2, element_index in zip(ret1, ret2, range(0,len(ret1))):
                debug("Comparing %s and %s (index %d)", e1, e2, element_index)
 
-               def is_fold(e, sc):
-                   if not isinstance(e, BoxedZ3Int) or '*' in e.name or '+' in e.name or '-' in e.name:
-                       return False
-                   foldAndCallCtx = self.getFoldAndCallCtx(sc)
-                   return e.name in foldAndCallCtx or is_fold(sc.var_dependency[e.name],sc)
-
-               if is_fold(normalizeTuple(e1), sc1) and is_fold(normalizeTuple(e2), sc2):
+               if self.is_fold(normalizeTuple(e1), sc1)[0] and self.is_fold(normalizeTuple(e2), sc2)[0]:
                    are_equivalent = self.verifyEquivalentFolds(normalizeTuple(e1), normalizeTuple(e2), sc1, sc2, element_index)
                else:
                    e1 = normalizeTuple(e1)
@@ -122,7 +141,7 @@ class Verifier:
                    if isinstance(e1, tuple):
                        for e1b, e2b, element_index_b in zip(e1, e2, range(0,len(e1))):
                            debug("Comparing %s and %s (index %d)", e1b, e2b, element_index_b)
-                           if is_fold(normalizeTuple(e1b),sc1) and is_fold(normalizeTuple(e2b), sc2):
+                           if self.is_fold(normalizeTuple(e1b),sc1)[0] and self.is_fold(normalizeTuple(e2b), sc2)[0]:
                                are_equivalent = self.verifyEquivalentFolds(normalizeTuple(e1b), normalizeTuple(e2b), sc1, sc2, element_index_b)
                            else:
                                are_equivalent = self.verifyEquivalentElements(normalizeTuple(e1b), normalizeTuple(e2b), element_index_b)
@@ -437,7 +456,7 @@ class Verifier:
         self.solver.push()
         self.solver.add(conjunctOfAll(formulas_secondapp1, formulas_secondapp2, firstApp1_formula_set, firstApp2_formula_set, secondApp1_formula_set, secondApp2_formula_set))
         formula = Exists(list(normalizeTuple(rep_var_sets1)),
-                            Exists(list(set(normalizeTuple(rep_var_sets_refreshed1)).difference({refreshed_for_secondapp_obj1.key_vars})),
+                            Exists(list(set(normalizeTuple(rep_var_sets_refreshed1)).difference(refreshed_for_secondapp_obj1.key_vars)),
                                 ForAll(list(set(normalizeTuple(rep_var_set_shrinked1))
                                             .union(set(map(lambda x: Globals.boxed_var_name_to_var[x].val, var_defs_shrinked1.keys())))
                                             .union(set(filter(lambda x: not is_false(x),
@@ -461,7 +480,7 @@ class Verifier:
                                             .union(set(filter(lambda x: not is_false(x),
                                                               map(lambda x: Globals.boxed_var_name_to_var[x].isBot,
                                                                   var_deps_shrinked2.keys()))))
-                                            .difference({refreshed_for_shrinked_obj1.key_vars})),#.union(normalizeTuple(rep_var_set_shrinked2))), #.union({shrinked1.get_val()}).union({shrinked2.get_val()})),#.union({secondApp1.get_val()}).union({secondApp2.get_val()}).union({shrinked1.get_val()}).union({shrinked2.get_val()})
+                                            .difference(refreshed_for_shrinked_obj1.key_vars)),#.union(normalizeTuple(rep_var_set_shrinked2))), #.union({shrinked1.get_val()}).union({shrinked2.get_val()})),#.union({secondApp1.get_val()}).union({secondApp2.get_val()}).union({shrinked1.get_val()}).union({shrinked2.get_val()})
                                    Implies(And(simplify(conjunctOfAll(formulas_shrinked1, formulas_shrinked2, shrinked1_formula_set, shrinked2_formula_set)),
                                                 keys_are_equal),
                                                 Not(syncEquivalenceConjunction)))))
@@ -549,8 +568,10 @@ class Verifier:
         foldAndCallCtx1 = self.getFoldAndCallCtx(programCtx1)
         foldAndCallCtx2 = self.getFoldAndCallCtx(programCtx2)
 
-        foldRes1 = foldAndCallCtx1[e1.name] # TODO what if it is a call on a boxedz3int?
-        foldRes2 = foldAndCallCtx2[e2.name]
+        is_fold_1, foldRes1 = self.is_fold(e1, programCtx1)
+        is_fold_2, foldRes2 = self.is_fold(e2, programCtx2)
+        # foldRes1 = foldAndCallCtx1[fold_elm1.name] # TODO what if it is a call on a boxedz3int?
+        # foldRes2 = foldAndCallCtx2[fold_elm2.name]
 
         print "Got fold/call results: ", foldRes1, "and",foldRes2
 
@@ -611,8 +632,9 @@ class Verifier:
         self.solver.add(e1 != e2)
         result = solverResult(self.solver)
         self.solver.pop()
-        if result == unsat:
+        if result == True:
             self.solver.add(e1 == e2)
+            self.solver.add(Bot() != e1)
 
         return result
 

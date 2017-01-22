@@ -6,7 +6,7 @@ import Globals
 
 from SparkContext import SparkContext
 from Verifier import Verifier
-from test import operatorPushback, byKey1, byKey2, doublingCartesian, discountTest1, discountTest2, moduloFoldTest1, doublingElements, filterCartesian, filterCartesianNonEquivalent, minimumMaximumFold, aggregateAndFilter, join
+from test import operatorPushback, byKey1, byKey2, byKey3, doublingCartesian, discountTest1, discountTest2, moduloFoldTest1, doublingElements, filterCartesian, filterCartesianNonEquivalent, minimumMaximumFold, aggregateAndFilter, join
 
 
 
@@ -65,6 +65,8 @@ rdd6 = sc.parallelize([(231,212),(13,85), (2398, 83)])
 r_prices = sc.parallelize([(1,89),(2,110),(3,65)])
 r_costs = sc.parallelize([(1,40),(2,60),(3,10)])
 r_sales = sc.parallelize([(1,18112016), (3,18112016), (3,20112016), (2,01122015), (3,15122016), (2,01022016),   (1,12122016)])
+
+r_grades = sc.parallelize([(1,78), (2,85), (3,43), (4,100), (5,94), (6,87), (7,55), (8,65)])
 
 test_dict = {
 # Basic
@@ -138,7 +140,21 @@ testAll()
 
 # BY KEY
 
-
 test(
-Tester(byKey2.program1outerJoin, byKey2.program3, r_prices, r_costs, r_sales), "equivalent"
+    Tester(byKey3.program1, byKey3.program2, r_grades), "equivalent"
 )
+
+# AggN
+# test(
+#     Tester(byKey2.program5, byKey2.program6, r_prices, r_sales), "equivalent"
+# )
+
+# AggN
+# test(
+#     Tester(byKey2.program2, byKey2.program4, r_prices, r_costs, r_sales), "equivalent"
+# )
+
+# Agg1R
+# test(
+# Tester(byKey2.program1outerJoin, byKey2.program3, r_prices, r_costs, r_sales), "equivalent"
+# )

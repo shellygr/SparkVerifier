@@ -166,6 +166,10 @@ class SparkConverter(ast.NodeVisitor):
                 else:
                     out_var = BoxedZ3IntVar(base_name)
                     self.var_dependency[out_var.name] = normalizeTuple(udf_arg[i])
+                    if isinstance(udf_arg[i], BoxedZ3Int) and udf_arg[i].name in self.foldResults:
+                        self.foldResults[out_var.name] = self.foldResults[udf_arg[i].name]
+                    if isinstance(udf_arg[i], BoxedZ3Int) and udf_arg[i].name in self.callResults:
+                        self.callResults[out_var.name] = self.callResults[udf_arg[i].name]
                     out_vars += (out_var,)
                     then = And(then, out_var == normalizeTuple(udf_arg[i]))
                     otherwise = And(otherwise, out_var == Bot())
@@ -364,16 +368,18 @@ class SparkConverter(ast.NodeVisitor):
     def find_rep_vars_for_expr(self, e):
         if not isinstance(e, BoxedZ3Int):
             #raise Exception("Expected a BoxedZ3Int to find rep vars")
-            return e
+            return {e}
 
         if e.name[0] == "x":
-            return e
+            return {e}
 
         loopOn = e
         while True:
             candidate = self.var_dependency[loopOn.name]
 
             if not isinstance(candidate, BoxedZ3Int) or candidate.name[0] == "x":
-                return candidate
+                if isinstance(candidate, set):
+                    return candidate
+                return {candidate}
 
             loopOn = candidate
