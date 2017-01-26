@@ -34,8 +34,6 @@ def id(x):
 
 def takeMinimum(rdd):
 
-
-    # print rdd
     min1 = rdd.fold(1000000, min)
 
     # print min1
