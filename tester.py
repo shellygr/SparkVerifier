@@ -92,7 +92,8 @@ test_dict = {
     20: (Tester(aggregateAndFilter.sumFilter1, aggregateAndFilter.sumFilter2, rdd), "equivalent"),
     21: (Tester(byKey1.sum1, byKey1.sum2, rdd3), "equivalent"),
     22: (Tester(byKey1.directSum, byKey1.sumByMap, rdd3), "equivalent"),
-    23: (Tester(byKey2.program1, byKey2.program3, r_prices, r_costs, r_sales), "Not equivalent")
+    # 23: (Tester(byKey2.program1, byKey2.program3, r_prices, r_costs, r_sales), "Not equivalent"),
+    23: (Tester(byKey3.program1, byKey3.program2, r_grades), "equivalent")
 }
 
 def testAll():
@@ -108,6 +109,7 @@ testAll()
 # run_specific_test(10)
 # run_specific_test(11)
 # run_specific_test(15)
+# run_specific_test(18)
 # run_specific_test(20)
 
 # Tester(discountTest1.isMinimumAtLeast100, discountTest1.newDiscountProgram, rdd), "equivalent"
@@ -140,9 +142,7 @@ testAll()
 
 # BY KEY
 
-test(
-    Tester(byKey3.program1, byKey3.program2, r_grades), "equivalent"
-)
+
 
 # AggN
 # test(

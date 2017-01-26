@@ -22,6 +22,9 @@ def doubleValue((x,y)):
 def doubleJoinedPair((x, (y,z))):
     return (2*x, (2*y, 2*z))
 
+def doubleKey((x, (y,z))):
+    return (2*x, (y, z))
+
 def double(x):
     return 2*x
 
@@ -81,7 +84,7 @@ def mapValuesJoin(rdd, rdd2):
     r1 = rdd.map(doubleValue)
     r2 = rdd2.map(doubleValue)
     p2 = r1.cartesian(r2)
-    p3 = p2.filter(joinFilterForPairs).map(postJoinMap)
+    p3 = p2.filter(joinFilterForPairs).map(postJoinMap) #.map(doubleKey)  - will make example 18 work
     return p3
 
 

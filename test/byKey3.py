@@ -226,13 +226,11 @@ def only_positive_grades((s,g)):
     return g >= 0
 
 def program1(rg):
-    # rg_positive_grades = rg.filter(only_positive_grades)
     rg_invert = rg.map(invert_to_class)
     rg_histogram = rg_invert.foldByKey(0, count)
     return rg_histogram.filter(passed_class)
 
 def program2(rg):
-    # rg_positive_grades = rg.filter(only_positive_grades)
     rg_passed = rg.filter(students_who_passed)
     rg_passed_invert = rg_passed.map(invert_to_class)
     return rg_passed_invert.foldByKey(0, count)
