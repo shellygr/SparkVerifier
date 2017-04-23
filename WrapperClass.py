@@ -3,6 +3,71 @@ from z3 import *
 import Globals
 from RDDTools import gen_name
 
+class BoxedZ3Tuple:
+    def __init__(self, vals, isBot, name):
+        self.vals = vals
+        self.isBot = isBot
+        self.name = name
+
+    def project(self, n):
+        return self.vals[n]
+
+    def __eq__(self, other):
+        if other == None:
+            return False
+        if len(self.vals)!= len(other.vals):
+            return False
+
+        return And(self.vals[i] == other.vals[i] for i in len(self))
+
+    def __ne__(self, other):
+        return Not(self.__eq__(other))
+
+    def __str__(self):
+        return self.name
+
+    def __repr__(self):
+        return self.name
+
+    def __len__(self):
+        return len(self.vals)
+
+    # Vectorial operations
+    def __add__(self, other):
+        return BoxedZ3Tuple(tuple(map(lambda x,y: x+y, zip(self.vals, other.vals))), Or(self.isBot, other.isBot), self.name + "+" + other.name)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        return BoxedZ3Tuple(tuple(map(lambda x,y: x-y, zip(self.vals, other.vals))), Or(self.isBot, other.isBot), self.name + "-" + other.name)
+
+    def __mul__(self, other):
+        return BoxedZ3Tuple(tuple(map(lambda x,y: x*y, zip(self.vals, other.vals))), Or(self.isBot, other.isBot), self.name + "*" + other.name)
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __mod__(self, other):
+        return BoxedZ3Tuple(tuple(map(lambda x,y: x.__mod__(y), zip(self.vals, other.vals))), Or(self.isBot, other.isBot), self.name + "%" + other.name)
+
+    def __div__(self, other):
+        return BoxedZ3Tuple(tuple(map(lambda x,y: x.__div__(y), zip(self.vals, other.val))), Or(self.isBot, other.isBot), self.name + "/" + other.name)
+
+    def __divmod__(self, other):
+        return BoxedZ3Tuple(tuple(map(lambda x,y: x.__divmod__(y), zip(self.vals,other.vals))), Or(self.isBot, other.isBot),
+                          self.name + " divmov " + other.name)
+
+    def __neg__(self):
+        return BoxedZ3Tuple(tuple(map(lambda x: x.__neg__(), self.vals)), self.isBot, "-" + self.name)
+
+    # dict key support
+    def __hash__(self):
+        return hash((self.name))
+
+    def myvars(self):
+        return set(self.vals).union({self.isBot})
+
 class BoxedZ3Bool:
     def __init__(self, val, isBot, name):
         self.val = val
@@ -50,7 +115,6 @@ class BoxedZ3Int:
     def __init__(self, val, isBot, name):
         self.val = val
         self.isBot = isBot
-        self.isUnique = Bool("%s.isUnique"%name)
         self.name = name
 
     def __add__(self, other):
@@ -126,7 +190,7 @@ class BoxedZ3Int:
         return hash((self.name))
 
     def myvars(self):
-        return set({self.val, self.isBot, self.isUnique})
+        return set({self.val, self.isBot})
 
     def get_val(self):
         return self.val

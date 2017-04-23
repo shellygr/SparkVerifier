@@ -1,0 +1,9 @@
+Verifying Equivalence of Spark Programs - Artifact
+---------------------------------------------------
+
+32bit Ubuntu 16.04 with 1GB RAM.
+Prepared on a 64bit Windows host with 32GB RAM and 8 cores, 3.4GHz.
+After booting the image, open the terminal and run the ./run_artifact.sh file.
+This will show the output of the Python-based tool on the full testcases (as presented in the Technical Report following this paper).
+
+Source code can be located in /home/user/src

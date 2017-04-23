@@ -4,6 +4,7 @@ import Globals
 from RDDTools import gen_name
 from SolverTools import gen_sub_var
 from RDD import RDD
+from WrapperClass import BoxedZ3IntVarNonBot, BoxedZ3Tuple
 from tools import debug
 
 
@@ -42,7 +43,7 @@ class SparkContext(object):
         # add self as free variable
         rdd.fv = rdd.fv.union(set(names))
 
-        rdd.vars = tuple([Int(name) for name in rdd.fv])
+        rdd.vars = tuple([Int(name) for name in rdd.fv]) #BoxedZ3Tuple(tuple([Int(name) for name in names]), False, name)
 
         # add to inputs
         Globals.input_rdds[name] = rdd

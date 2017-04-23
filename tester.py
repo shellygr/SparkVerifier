@@ -70,30 +70,30 @@ r_grades = sc.parallelize([(1,78), (2,85), (3,43), (4,100), (5,94), (6,87), (7,5
 
 test_dict = {
 # Basic
-    1: (Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMap, rdd), "equivalent"),
-    2: (Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMapWrong, rdd), "Not equivalent"),
-    3: (Tester(doublingCartesian.cartesianThenMap, doublingCartesian.mapThenCartesian, rdd), "equivalent"),
-    4: (Tester(doublingElements.doubleMap, doublingElements.doubleAndAdd1Map, rdd), "Not equivalent"),
-    5: (Tester(filterCartesian.cartesianThenFilter, filterCartesian.filterThenCartesian, rdd, rdd2), "equivalent"),
-    6: (Tester(filterCartesianNonEquivalent.cartesianThenWrongFilter, filterCartesianNonEquivalent.filterThenCartesian, rdd, rdd2), "Not equivalent"),
-    7: (Tester(discountTest1.takeMinimum, discountTest1.takeMinimumAfterDiscount, rdd), "Not equivalent"),
-    8: (Tester(discountTest1.isMinimumAtLeast100, discountTest1.isMinimumAfterDiscountAtLeast80, rdd), "equivalent"),
-    9: (Tester(discountTest1.isMinimumEqual100, discountTest1.isMinimumAfterDiscountEqual80, rdd), "equivalent"),
-    10: (Tester(moduloFoldTest1.takeSumMod5Sum, moduloFoldTest1.takeSumMod5SumOfTriples, rdd), "Not equivalent"),
-    11: (Tester(moduloFoldTest1.isSimpleSumMod5Equal0, moduloFoldTest1.isSimpleSumMod5OfTripledEqual0, rdd), "equivalent"),
-    12: (Tester(moduloFoldTest1.isSimpleSumMod6Equal0, moduloFoldTest1.isSimpleSumMod6OfTripledEqual0, rdd), "Not equivalent"),
-    13: (Tester(minimumMaximumFold.takeMaximum, minimumMaximumFold.takeMaximumByMinimum, rdd), "equivalent"),
-    14: (Tester(minimumMaximumFold.takeMaximumWrongInit, minimumMaximumFold.takeMaximumByMinimum, rdd), "Not equivalent"),
-    15: (Tester(aggregateAndFilter.aggregateFiltered, aggregateAndFilter.aggregateMap, rdd), "equivalent"),
-    16: (Tester(join.mapJoin, join.joinMap, rdd3, rdd4), "equivalent"),
-    17: (Tester(join.slimMapValuesJoin, join.slimJoinMap, rdd3, rdd4), "equivalent"),
-    18: (Tester(join.mapValuesJoin, join.joinMap, rdd3, rdd4), "Not equivalent"),
-    19: (Tester(join.filterJoin, join.joinThenFilter, rdd5, rdd6), "equivalent"),
-    20: (Tester(aggregateAndFilter.sumFilter1, aggregateAndFilter.sumFilter2, rdd), "equivalent"),
-    21: (Tester(byKey1.sum1, byKey1.sum2, rdd3), "equivalent"),
-    22: (Tester(byKey1.directSum, byKey1.sumByMap, rdd3), "equivalent"),
-    # 23: (Tester(byKey2.program1, byKey2.program3, r_prices, r_costs, r_sales), "Not equivalent"),
-    23: (Tester(byKey3.program1, byKey3.program2, r_grades), "equivalent")
+    1: (Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMap, rdd), "equivalent"), #P1, P2
+    2: (Tester(operatorPushback.mapThenFilter, operatorPushback.filterThenMapWrong, rdd), "Not equivalent"), #P1, P2'
+    3: (Tester(doublingCartesian.cartesianThenMap, doublingCartesian.mapThenCartesian, rdd), "equivalent"), #P25, P26
+    4: (Tester(doublingElements.doubleMap, doublingElements.doubleAndAdd1Map, rdd), "Not equivalent"), #P27, P28
+    5: (Tester(filterCartesian.cartesianThenFilter, filterCartesian.filterThenCartesian, rdd, rdd2), "equivalent"), #P29, P30
+    6: (Tester(filterCartesianNonEquivalent.cartesianThenWrongFilter, filterCartesianNonEquivalent.filterThenCartesian, rdd, rdd2), "Not equivalent"), #P29', P30
+    7: (Tester(discountTest1.takeMinimum, discountTest1.takeMinimumAfterDiscount, rdd), "Not equivalent"), #P31, P32
+    8: (Tester(discountTest1.isMinimumAtLeast100, discountTest1.isMinimumAfterDiscountAtLeast80, rdd), "equivalent"), #P3, P4
+    9: (Tester(discountTest1.isMinimumEqual100, discountTest1.isMinimumAfterDiscountEqual80, rdd), "equivalent"), #P5, P6
+    10: (Tester(moduloFoldTest1.takeSumMod5Sum, moduloFoldTest1.takeSumMod5SumOfTriples, rdd), "Not equivalent"), #P33, P34
+    11: (Tester(moduloFoldTest1.isSimpleSumMod5Equal0, moduloFoldTest1.isSimpleSumMod5OfTripledEqual0, rdd), "equivalent"), #P15, P16
+    12: (Tester(moduloFoldTest1.isSimpleSumMod6Equal0, moduloFoldTest1.isSimpleSumMod6OfTripledEqual0, rdd), "Not equivalent"), #P15', P16'
+    13: (Tester(minimumMaximumFold.takeMaximum, minimumMaximumFold.takeMaximumByMinimum, rdd), "equivalent"), # P17, P18
+    14: (Tester(minimumMaximumFold.takeMaximumWrongInit, minimumMaximumFold.takeMaximumByMinimum, rdd), "Not equivalent"), #P17', P18
+    15: (Tester(aggregateAndFilter.aggregateFiltered, aggregateAndFilter.aggregateMap, rdd), "equivalent"), #P13, P14
+    16: (Tester(join.mapJoin, join.joinMap, rdd3, rdd4), "equivalent"), #P9, P10
+    17: (Tester(join.slimMapValuesJoin, join.slimJoinMap, rdd3, rdd4), "equivalent"), #P23, P24
+    18: (Tester(join.mapValuesJoin, join.joinMap, rdd3, rdd4), "Not equivalent"), #P9', P10
+    19: (Tester(join.filterJoin, join.joinThenFilter, rdd5, rdd6), "equivalent"), #P11, P12
+    # 20: (Tester(aggregateAndFilter.sumFilter1, aggregateAndFilter.sumFilter2, rdd), "equivalent"), # Very similar to P19,P20 which does the same with by key.
+    20: (Tester(byKey1.sum1, byKey1.sum2, rdd3), "equivalent"), # P19, P20
+    21: (Tester(byKey1.directSum, byKey1.sumByMap, rdd3), "equivalent"), #P21, P22
+    22: (Tester(byKey3.program1, byKey3.program2, r_grades), "equivalent"), #P7, P8
+    23: (Tester(moduloFoldTest1.isCountMod5Equal0, moduloFoldTest1.isCountMod5OfTripledEqual0, rdd), "equivalent") #P15'', P16'' - should fail!
 }
 
 def testAll():

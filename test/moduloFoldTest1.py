@@ -34,6 +34,9 @@ def sumMod5(A,x):
 def simpleSum(A,x):
     return A+x
 
+def simpleCount(A,x):
+    return A+1
+
 def triple(x):
     return 3*x
 
@@ -63,12 +66,12 @@ def takeSumMod5SumOfTriples(rdd):
     return modResult2
 
 def isSimpleSumMod5Equal0(rdd):
-    modResult1 = rdd.fold(0, simpleSum)
+    modResult1 = rdd.fold(0, simpleSum) # simpleCount for counterexample for cav'17 rebuttal
     return equal0mod5(modResult1)
 
 def isSimpleSumMod5OfTripledEqual0(rdd):
     rddTripled = rdd.map(triple)
-    modResult2 = rddTripled.fold(0, simpleSum)
+    modResult2 = rddTripled.fold(0, simpleSum) # simpleCount for counterexample for cav'17 rebuttal
     return equal0mod5(modResult2)
 
 def isSimpleSumMod6Equal0(rdd):
@@ -79,3 +82,12 @@ def isSimpleSumMod6OfTripledEqual0(rdd):
     rddTripled = rdd.map(triple)
     modResult2 = rddTripled.fold(0, simpleSum)
     return equal0mod6(modResult2)
+
+def isCountMod5Equal0(rdd):
+    modResult1 = rdd.fold(0, simpleCount) # simpleCount for counterexample for cav'17 rebuttal
+    return equal0mod5(modResult1)
+
+def isCountMod5OfTripledEqual0(rdd):
+    rddTripled = rdd.map(triple)
+    modResult2 = rddTripled.fold(0, simpleCount) # simpleCount for counterexample for cav'17 rebuttal
+    return equal0mod5(modResult2)

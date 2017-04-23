@@ -36,19 +36,14 @@ def takeMinimum(rdd):
 
     min1 = rdd.fold(1000000, min)
 
-    # print min1
     return min1
 
 
 def takeMinimumAfterDiscount(rdd):
-    #
-    # print rdd
-
     rddAfterDiscount = rdd.map(discount)
 
     min2 = rddAfterDiscount.fold(1000000, min)
 
-    # print min2
     return min2
 
 
@@ -77,20 +72,23 @@ def someBoolUninterp(x):
 def isEven(x):
     return x%2==0
 
+def isOdd(x):
+    return x%2==1
+
 
 def countUdf(A,x):
     return A+1
 
 def aggregateFiltered(rdd):
-    rddFilter = rdd.filter(isEven) # originally - someBoolUninterp (TODO: check with aggpair1sync)
+    rddFilter = rdd.filter(isOdd) # originally - someBoolUninterp (TODO: check with aggpair1sync)
 
     count = rddFilter.fold(0, countUdf)
 
     return count
 
 def filteringMap(x):
-    if isEven(x): # Originally someBoolUninterp
-        return 1
+    if isOdd(x): # Originally someBoolUninterp
+        return 1 # return 2 - for rebuttal cav'17 test
     else:
         return 0
 
