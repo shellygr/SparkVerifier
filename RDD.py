@@ -19,7 +19,5 @@ class RDD:
 
         new_vars = tuple(map(rename_var, self.vars))
 
-        print "refreshed vars for", self.name,":",new_vars
-
         self.vars = new_vars
         return self

@@ -56,6 +56,7 @@ def getConjunctionOfEquals(series1, series2, formula):
     else:
         return And(formula, series1==series2)
 
+
 def getAllBottoms(ser, formula, bot):
     if type(ser) == tuple:
         for elm in ser:
@@ -64,6 +65,7 @@ def getAllBottoms(ser, formula, bot):
     else:
         return And(formula, ser == bot)
 
+
 def solverResult(solver):
     debug("Solver: %s", solver)
     # Solve - if UNSAT, equivalent.
@@ -71,7 +73,7 @@ def solverResult(solver):
     debug("%s", solver.sexpr())
     debug("Solver result = %s", result)
     if result == sat:
-        print '\033[91m'+ "Not equivalent! Model showing inequivalence %s" % (solver.model()) + '\033[0m'
+        print '\033[91m'+ "Not equivalent! Model: %s" % (solver.model()) + '\033[0m'
         return False
     else:
         if result == unsat:

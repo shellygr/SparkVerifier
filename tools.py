@@ -1,7 +1,7 @@
 import inspect
 
-# DEBUG = False
-DEBUG = True
+DEBUG = False
+# DEBUG = True
 
 def debug(str, *args):
     if (DEBUG):

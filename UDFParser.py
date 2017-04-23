@@ -64,30 +64,6 @@ class UDFConverter(ast.NodeVisitor):
 
         self.fillArgWithTerm(aggregated_value_arg, aggregated_value_term)
         self.fillArgWithTerm(element_arg, element_term)
-        #
-        # for i in range(0, len(node.args.args)):  # each argument should be mapped to the concrete argument
-        #     arg = node.args.args[i]
-        #
-        #     if isinstance(arg,
-        #                   ast.Tuple) and i == 0:  # This is a function on a record-type rdd, looping on the tuple's elements:
-        #         for j in range(0, len(arg.elts)):
-        #             if isinstance(arg.elts[j], ast.Tuple):
-        #                 for k in range(0, len(arg.elts[j].elts)):
-        #                     if isinstance(self.term[j], ast.Num):
-        #                         self.env[arg.elts[j].elts[k].id] = self.visit(self.term[j][k])
-        #                     else:
-        #                         self.env[arg.elts[j].elts[k].id] = self.term[j][k]
-        #             else:
-        #                 if isinstance(self.term[j], ast.Num):
-        #                     self.env[arg.elts[j].id] = self.visit(self.term[j])
-        #                 else:
-        #                     self.env[arg.elts[j].id] = self.term[j]
-        #     else:
-        #         # Each arg must be a name node
-        #         if isinstance(self.term[i], ast.Num):
-        #             self.env[arg.id] = self.visit(self.term[i])
-        #         else:
-        #             self.env[arg.id] = self.term[i]
 
     def visit_FunctionDef(self, node):
 
@@ -95,8 +71,6 @@ class UDFConverter(ast.NodeVisitor):
             self.fillEnvForFoldUdf(node.args.args)
         else:
             self.fillEnvForNonFoldUdf(node.args.args)
-
-
 
         for line in node.body: # TODO: Support more than 1 line. Currently supports only a single line which must be a return
             result = self.visit(line) # only support Return, If and operations
@@ -226,8 +200,6 @@ class UDFConverter(ast.NodeVisitor):
 
         debug("Then formula = %s, Else formula = %s", thenFormula, otherwiseFormula)
         if with_else:
-            # formula = If(test == True, And(uVar.val == then, uVar.isBot == False), And(uVar.val == otherwise, uVar.isBot == False))
-            # formula = simplify(If(test == True, uVar == then, uVar == otherwise))
             formula = simplify(If(test == True, thenFormula, otherwiseFormula))
             debug("Formula added for if: %s", formula)
             self.formulas.add(formula)
@@ -235,8 +207,6 @@ class UDFConverter(ast.NodeVisitor):
             for name in generated_names:
                 self.var_defs[name] = formula
         else:
-            # formula = If(test == True, And(uVar.val == then, uVar.isBot == False), uVar.isBot == True)
-            # formula = simplify(If(test == True, uVar == then, uVar == bot))
             formula = simplify(If(test == True, thenFormula, otherwiseFormula))
             self.formulas.add(formula)
             for name in generated_names:

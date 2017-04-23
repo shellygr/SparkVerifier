@@ -33,9 +33,7 @@ def id(x):
     return x
 
 def takeMinimum(rdd):
-
     min1 = rdd.fold(1000000, min)
-
     return min1
 
 
@@ -48,23 +46,15 @@ def takeMinimumAfterDiscount(rdd):
 
 
 def isMinimumAtLeast100(rdd):
-
-    # print rdd
     min1 = rdd.fold(1000000, min)
-
-    # print min1
     return apply(atleast100, (min1,))
 
 
 def isMinimumAfterDiscountAtLeast100(rdd):
-    # print rdd
-
     rddAfterDiscount = rdd.map(discount)
-
     min2 = rddAfterDiscount.fold(1000000, min)
-
-    # print min2
     return apply(atleast100, (min2,))
+
 
 def someBoolUninterp(x):
     return True # impl doesn't matter
@@ -101,8 +91,6 @@ def aggregateMap(rdd):
     sum = rddMap.fold(0, sumUdf)
 
     return sum
-
-
 
 def isValAtLeastZero(v):
     return v >= 0

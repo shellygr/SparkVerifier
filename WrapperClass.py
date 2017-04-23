@@ -3,6 +3,7 @@ from z3 import *
 import Globals
 from RDDTools import gen_name
 
+
 class BoxedZ3Tuple:
     def __init__(self, vals, isBot, name):
         self.vals = vals
@@ -155,7 +156,6 @@ class BoxedZ3Int:
             return False
         other = _to_BoxedZ3Int(other)
         return If(other.isBot, self.isBot, If(self.isBot, other.isBot, self.val == other.val))
-        # return Or(And(self.isBot, other.isBot), And(Not(self.isBot), Not(other.isBot), self.val == other.val))
 
     def __ne__(self, other):
         return Not(self.__eq__(other))

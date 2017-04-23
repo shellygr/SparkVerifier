@@ -12,10 +12,6 @@ from UDFParser import substituteInFuncDec
 from WrapperClass import bot, BoxedZ3IntVar, Bot, BoxedZ3Int, BoxedZ3IntVarNonBot
 from tools import debug
 
-
-
-
-
 class SparkConverter(ast.NodeVisitor):
     # Solver is Z3
     # Vars are all the vars we keep for the solver  -  TODO: Get rid of it!
@@ -335,7 +331,8 @@ class SparkConverter(ast.NodeVisitor):
             fold_vars = create_folded_vars(result, result_arity)
 
             debug("Fold operation returns fold vars %s with Fold object %s", fold_vars, result)
-            # Return a tuple of variables representing the folded type result, so it could be given as input to functions
+            # Return a tuple of variables representing the folded type result,
+            # so it could be given as input to functions
             return fold_vars, result_arity, {}, first_rdd_fold_level+1
 
         if op_name == "foldByKey":
@@ -359,15 +356,15 @@ class SparkConverter(ast.NodeVisitor):
             # TODO: Note key_var cannot be a tuple
             result = (rdd_term[0], normalizeTuple(fold_vars))
 
-            return result, 1 + 1, {key_var}, first_rdd_fold_level+1 # 1 for key + 1 for value because even if folded value is a tuple, we address it as a single value and UDFs for map/filter will have to be smart enough to know it
+            return result, 1 + 1, {key_var}, first_rdd_fold_level+1 # 1 for key + 1 for value because even if folded
+            # value is a tuple, we address it as a single value and UDFs for
+            # map/filter will have to be smart enough to know it
 
         return None, None
-
 
     # Needs to return a set
     def find_rep_vars_for_expr(self, e):
         if not isinstance(e, BoxedZ3Int):
-            #raise Exception("Expected a BoxedZ3Int to find rep vars")
             return {e}
 
         if e.name[0] == "x":

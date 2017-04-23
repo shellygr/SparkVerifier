@@ -7,9 +7,5 @@ uninterpFuncs = {}
 dependentVariables = {}
 newNames = []
 lastRefreshedName = {}
-
-
 input_rdds = {}
-
-
 boxed_var_name_to_var = {}

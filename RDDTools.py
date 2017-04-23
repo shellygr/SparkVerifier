@@ -14,7 +14,6 @@ def fvOf(rdd):
     return rdd.fv
 
 def namesToVars(dict, names):
-    # print names
     if type(names) == tuple:
         return tuple(map(lambda x: dict[x], names))
     return dict[names]
@@ -22,5 +21,4 @@ def namesToVars(dict, names):
 def gen_name(op):
     Globals.index += 1
     name = "%s%d" % (op, Globals.index)
-    # debug("%s", name)
     return name
