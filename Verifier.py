@@ -60,11 +60,12 @@ class Verifier:
 
 
     def verifyEquivalence(self, p1, p2):
-        print("")
-        #
+        # Parse all functions and UDFs in the given Spark programs
         fillAllFuncs(p1)
         fillAllFuncs(p2)
 
+        # Create a program term (it is internally a set of formulas which are added to the solver).
+        # The result also calculates various metadata regarding the type of the expression and the syntactic class.
         result1 = self.createProgramEnv(p1, p1.__name__, 0, self.inputs)
         result2 = self.createProgramEnv(p2, p2.__name__, 1, self.inputs)
 
@@ -109,7 +110,7 @@ class Verifier:
         return is_fold_result, fold
 
     def verify(self, sc1, sc2):
-
+        # Verifies equivalence of each component in the result (if a tuple or tuple of tuples. Depth is limited to 2.)
         if sc1.ret_arity != sc2.ret_arity:
             return False
 
@@ -570,7 +571,7 @@ class Verifier:
 
         return result
 
-
+    # Check a single component from each program
     def verifyEquivalentElements(self, e1, e2, element_index=-1):
         self.solver.push()
         self.solver.add(e1 != e2)
@@ -590,7 +591,7 @@ def solverResult(solver, sat_message = "Not equivalent!", unsat_message = "Equiv
     result = solver.check()
     debug("Solver result = %s", result)
     if result == sat:
-        print '\033[91m'+ "%s Model showing inequivalence %s" % (sat_message, solver.model()) + '\033[0m'
+        print '\033[91m'+ "%s Model: %s" % (sat_message, solver.model()) + '\033[0m'
         return False
     else:
         if result == unsat:

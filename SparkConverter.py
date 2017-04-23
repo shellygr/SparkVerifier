@@ -358,7 +358,7 @@ class SparkConverter(ast.NodeVisitor):
 
             return result, 1 + 1, {key_var}, first_rdd_fold_level+1 # 1 for key + 1 for value because even if folded
             # value is a tuple, we address it as a single value and UDFs for
-            # map/filter will have to be smart enough to know it
+            #  map/filter will have to be smart enough to know it
 
         return None, None
 

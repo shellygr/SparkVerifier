@@ -9,6 +9,11 @@ from Verifier import Verifier
 from test import operatorPushback, byKey1, byKey3, doublingCartesian, discountTest1, moduloFoldTest1, \
     doublingElements, filterCartesian, filterCartesianNonEquivalent, minimumMaximumFold, aggregateAndFilter, join
 
+"""
+ A tester class for an instance of the equivalence problem.
+ Given f1, f2 are Python functions that integrate with the real Spark library
+    (it is almost compatible with real Spark code and very similar to SparkLite syntax).
+"""
 class Tester:
     def __init__(self, f1, f2, *args):
         self.f1 = f1
@@ -23,6 +28,7 @@ class Tester:
     def __str__(self):
         return "%s=?=%s"%(self.f1,self.f2)
 
+""" Run a test, with the expected result, where programs are denoted p and q """
 def test(test, expected, p, q):
     Globals.testNo += 1
     print ""
@@ -48,7 +54,7 @@ def test(test, expected, p, q):
     # Clear globals uninterpreted functions after every test
     Globals.uninterpFuncs = {}
 
-
+# sc, rddN variables are for Spark library support
 sc = SparkContext(appName="CAV2017")
 
 rdd = sc.parallelize([293, 2910])
