@@ -1,22 +1,24 @@
 ## Verifying Equivalence of Spark Programs - Artifact
-## ---------------------------------------------------
+---------------------------------------------------
 
 + _32bit Ubuntu 16.04 with 1GB RAM._
 + _Prepared on a 64bit Windows host with 32GB RAM and 8 cores, 3.4GHz._
 + _It has Python2.7 with pip, and Z3 installed._
 + _Credentials are user/pass._
 
-1. After booting the image, open the terminal and run the ./run_artifact.sh file.
+1. After booting the image, open the terminal and run the ```./run_artifact.sh``` file, located in the home directory _/home/user_.
 This will show the output of the Python-based tool on the full testcases (as presented in the Technical Report following this paper).
 
-2. Source code can be located in /home/user/src. It has some documentation.
+2. Source code can be located in **/home/user/src**. It has some documentation.
 Note that some of the functions refer to names of verification methods that evolved and changed a little bit.
 
 3. Examples code can be found in the /home/user/src/test directory.
 
 4. Adding a new test requires adding a new test to the test_dict dictionary, in this template:
-```id: (Tester(f1, f2, rdd_of_matching_type), expected, "P", "Q")```
-where _expected_ should be a string equal to either "equivalent" or "Not equivalent".
+   
+    ```id: (Tester(f1, f2, rdd_of_matching_type), expected, "P", "Q")```
+    
+    where _expected_ should be a string equal to either "equivalent" or "Not equivalent".
 A specific test can be run with the ```run_specific_test(id)``` function.
 
 ### Flow, and main building blocks
@@ -25,9 +27,9 @@ A specific test can be run with the ```run_specific_test(id)``` function.
 2. After analyzing the UDFs the program terms are created (see SparkConverter).
 _Program terms may be tuples of tuples, so there is an analysis of the return term and we iterate on the components._
     _If tuple types are not the same, we are obviously not equivalent and the tool detects it._
-A component of the program term tuple may be a 'FoldResult' term or a 'regular' term.
+A component of the program term tuple may be a ```FoldResult``` term or a 'regular' term.
 
-3. When no fold operations are performed, verification is quite straight-forward (verifyEquivalentElements).
+3. When no fold operations are performed, verification is quite straight-forward (```verifyEquivalentElements```).
 Variables are "Boxed" in the sense they have both an integer variable and a boolean "isBot" variable.
 Each operation such as map/filter creates new variables with updated fields (value/isBot, as relevant).
 Cartesian products and tuples are (currently) managed manually and are not "Boxed".
@@ -35,16 +37,19 @@ Cartesian products and tuples are (currently) managed manually and are not "Boxe
     _It's a prototype tool, but it should be generalized for better flexibility and extendibility.)_
 
 4. When fold operations are part of the term it is more complicated. The term is not an actual first order term, thus we keep
-a context with metadata such as the fold function, init value and others, the so called 'FoldResult'.
-We handle these in verifyEquivalentFolds.
-4.1. The first step is checking if these are AggOneSync (isAgg1pairsync). If yes, we return the result of verifyEquivalentSyncfolds().
+a context with metadata such as the fold function, init value and others, the aforementioned class ```FoldResult```.
+We handle these in ```verifyEquivalentFolds```.
+4.1. The first step is checking if these are AggOneSync (```isAgg1pairsync```). If yes, we return the result of ```verifyEquivalentSyncfolds```.
 4.2. For regular AggOne instances, we generate all the required terms for the inductive argument and add the required formulas that define
 what is an intermediate value, what is the value of applying a new term on the intermediate value with the fold function, etc...
 This requires 'refreshing' some of the variable names and some bookkeeping which we will not delve into.
-We then generate two formulas:
-(1) init values match
-(2) Equivalence in an inductive argument as presented in the paper
-We ask the solver if Not ((1) and (2)) is satisfiable.
+We generate two formulas:
+
+    (1) init values match
+
+    (2) Equivalence in an inductive argument as presented in the paper
+
+    We then ask the solver if Not ((1) and (2)) is satisfiable.
 
 4.3. For AggOneSync the process of both checking the semantic restriction and the equivalence condition is done in a similar
 manner, albeit more complex. Mainly because we need to quantify on all the variables for Z3 to succeed.
@@ -52,5 +57,5 @@ manner, albeit more complex. Mainly because we need to quantify on all the varia
 4.4. ByKey example work according to the reduction defined in the paper, except that we did not implement "Isomorphic Keys" check which is required for soundness.
 _This is a limitation of the prototype tool._
 
-5. Another class of interest is UDFConverter in UDFParser.py. It is very technical but it allows to re-use UDFs for substituting different terms in them.
+5. Another class of interest is ```UDFConverter``` in UDFParser.py. It is very technical but it allows to re-use UDFs for substituting different terms in them.
 It works on Python code in imperative/Object-Oriented style (like real Spark).
