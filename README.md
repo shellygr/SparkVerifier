@@ -21,6 +21,31 @@ Note that some of the functions refer to names of verification methods that evol
     where _expected_ should be a string equal to either "equivalent" or "Not equivalent".
 A specific test can be run with the ```run_specific_test(id)``` function.
 
+### An overview of the tests
+In tester.py, each line of code containing a test includes the name of the programs as they appear 
+in the accompanying Technical Report, Section 15.
+Tests 1-6 are all NoAgg tests. 
+When programs are not equivalent, note the given value to ```x1...,x2...``` variables which are the input bags' representative elements.
+The other variables are intermediate results in the programs.
+When the model is empty it means any assignment shows the inequivalence.
+
+Tests 7-12 are all either AggOne or AggOneSync. 
+Test 16 is AggOne but not AggOneSync but the equivalence is correctly detected.
+Test 13 is AggOne, not AggOneSync, and the tool is unable to prove the equivalence (see Section 5, regarding P15'' an P16'').
+The rest of the tests in 7-12 are all AggOneSync.
+In counterexamples to equivalence in these examples, note 
+the ```x1...``` variables (first fold step), 
+and the ```x1...r...``` variables  (second fold step)
+
+Tests 17-20 are NoAgg but focus on join and on bags with more complicated record types.
+The purpose of these tests is to check the parsing abilities of the tool.
+The equivalence is checked per each component of the tuple,
+ thus the message "Equivalent!" is printed multiple times for equivalent examples.
+If there is not an equal structure of the tuples, the tool will output "not equivalent".
+If a pair of corresponding components are not equivalent but the others are, the tool prints for each the result, and a pair of programs can be understood as equivalent if all of their output components are equivalent.
+
+Tests 21-23 focus solely on AggOneK, by a reduction to a simpler class as introduced in the last example of Section 1 (Overview), and fully specified in Section 14 of the accompanying Technical Report.
+
 ### Flow, and main building blocks
 1. The input is comprised of two Python functions. Each module (compilation unit) pertaining to the function is analyzed in order for the tool to be able to analyze UDFs and create terms.
 
