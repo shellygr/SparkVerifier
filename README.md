@@ -29,7 +29,7 @@ When programs are not equivalent, note the given value to ```x1...,x2...``` vari
 The other variables are intermediate results in the programs.
 When the model is empty it means any assignment shows the inequivalence.
 
-Tests 7-12 are all either AggOne or AggOneSync. 
+Tests 7-16 are all either AggOne or AggOneSync. 
 Test 16 is AggOne but not AggOneSync but the equivalence is correctly detected.
 Test 13 is AggOne, not AggOneSync, and the tool is unable to prove the equivalence (see Section 5, regarding P15'' an P16'').
 The rest of the tests in 7-12 are all AggOneSync.
