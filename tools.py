@@ -1,7 +1,7 @@
 import inspect
 
-# DEBUG = False
-DEBUG = True
+DEBUG = False
+# DEBUG = True
 
 def debug(str, *args):
     if (DEBUG):
@@ -10,7 +10,7 @@ def debug(str, *args):
 def idFunc(x):
     return x
 
-# First must be an RDD
+# First arg must be an RDD
 def apply(f, args):
     rddObj = args[0]
     return rddObj.apply(f)
